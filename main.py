@@ -2,7 +2,7 @@ import os
 import asyncio
 from master import agent
 from dotenv import load_dotenv
-from __future__ import annotations
+
 from llama_index.llms.openrouter import OpenRouter
 from llama_index.core.agent import ReActAgent
 from llama_index.core.tools import FunctionTool

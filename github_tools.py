@@ -268,6 +268,36 @@ def search_issues(
         raise RuntimeError(f"Unexpected error searching issues: {e}")
 
 # --------------------------------------------------------------------------- #
+# 11. POST /user/repos                                                        #
+# --------------------------------------------------------------------------- #
+
+def create_repo(
+    name: str,
+    description: str = "",
+    private: bool = False,
+    has_issues: bool = True,
+    has_wiki: bool = True,
+    auto_init: bool = False,
+) -> str:
+    """Create a new repository and return its full name."""
+    try:
+        user = _client().get_user()
+        repo = user.create_repo(
+            name=name,
+            description=description,
+            private=private,
+            has_issues=has_issues,
+            has_wiki=has_wiki,
+            auto_init=auto_init,
+        )
+        return repo.full_name
+    except GithubException as e:
+        raise RuntimeError(
+            f"GitHub API error creating repository {name}: {e.data.get('message', str(e))}"
+        )
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error creating repository {name}: {e}")
+# --------------------------------------------------------------------------- #
 # End of github_tools.py                                                      #
 # --------------------------------------------------------------------------- #
 
@@ -277,6 +307,6 @@ def search_issues(
 
 
 
-tools = [list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues]
+tools = [list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo]
 
 
