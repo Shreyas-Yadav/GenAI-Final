@@ -1,1 +1,5 @@
 .env
+github_agent_convergence_results.csv
+github_agent_test_results.csv
+pg-mcp-server
+__pycache__

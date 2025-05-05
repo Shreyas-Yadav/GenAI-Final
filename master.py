@@ -12,7 +12,7 @@ from github_tools import init_github
 
 # ─── GitHub helper functions (11 endpoints) ──────────────────────────────────
 from github_tools import (
-    list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo
+    list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo,close_issue
 )
 
 
@@ -33,7 +33,8 @@ init_github(token=github_token)  # set up GitHub client with your token
 llm = OpenRouter(
     api_key=OPENROUTER_API_KEY,
     model="google/gemini-2.0-flash-001",        # pick any OpenRouter‑hosted chat model you like
-    max_tokens=2048,
+    max_tokens=100000,
+    max_retries=5,
 )
 
 
@@ -41,6 +42,11 @@ llm = OpenRouter(
 
 # ─── Wrap GitHub helpers as LlamaIndex tools ─────────────────────────────────
 tools: List[FunctionTool] = [
+    FunctionTool.from_defaults(
+        fn=close_issue,
+        name="close_issue",
+        description="Close an issue in a repository",
+    ),
     FunctionTool.from_defaults(
         fn=list_my_repos,
         name="list_my_repos",
@@ -103,7 +109,8 @@ tools: List[FunctionTool] = [
 agent = ReActAgent.from_tools(
     tools=tools,
     llm=llm,
-    verbose=True,        # prints reasoning to stdout — great for debugging
+    verbose=True,
+    max_iterations=15        # prints reasoning to stdout — great for debugging
 )
 
 # # ─── Convenience entry point (optional) ──────────────────────────────────────

@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any,Dict,Union
 import base64
 import os
 import requests
@@ -77,6 +77,43 @@ def read_file(repo: str, path: str, branch: str = "main", owner: Optional[str] =
     except Exception as e:
         raise RuntimeError(f"Unexpected error reading file from {repo_owner}/{repo}: {e}")
 
+
+from github import GithubException
+
+
+
+def close_issue(repo: str, issue_number: int, owner: str = None) -> str:
+    """
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. "my-repo").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    """
+    repo_owner = owner or DEFAULT_OWNER
+    try:
+        repository = gh.get_repo(f"{repo_owner}/{repo}")
+        issue = repository.get_issue(number=issue_number)
+        if issue.state.lower() == "closed":
+            return f"Issue #{issue_number} is already closed."
+        issue.edit(state="closed")
+        return f"Issue #{issue_number} has been closed successfully."
+    except GithubException as e:
+        msg = e.data.get("message") if hasattr(e, "data") else str(e)
+        raise RuntimeError(f"GitHub API error closing issue #{issue_number}: {msg}")
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error closing issue #{issue_number}: {e}")
+
+
+
 # --------------------------------------------------------------------------- #
 # 3. PUT /repos/{owner}/{repo}/contents/{path}                                #
 # --------------------------------------------------------------------------- #
@@ -116,22 +153,36 @@ def commit_file(
 
 def list_issues(
     repo: str,
-    state: str = "open",
-    owner: Optional[str] = None,
-    labels: Optional[List[str]] = None,
-) -> List[Any]:
-    """Return issues matching *state* and optional *labels*."""
+    owner: str = None,
+    state: str = "open"
+) -> List[Dict[str, Union[int, str]]]:
+    """
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. "my-repo").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: "open", "closed", or "all". Defaults to "open".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    """
     repo_owner = owner or DEFAULT_OWNER
     try:
-        repository = _client().get_repo(f"{repo_owner}/{repo}")
-        issues = repository.get_issues(state=state, labels=",".join(labels) if labels else None)
-        return list(issues)
+        repository = gh.get_repo(f"{repo_owner}/{repo}")
+        issues = repository.get_issues(state=state)
+        return [{"number": issue.number, "title": issue.title} for issue in issues]
     except GithubException as e:
-        raise RuntimeError(
-            f"GitHub API error listing issues in {repo_owner}/{repo}: {e.data.get('message', str(e))}"
-        )
+        msg = e.data.get("message") if hasattr(e, "data") else str(e)
+        raise RuntimeError(f"GitHub API error listing issues: {msg}")
     except Exception as e:
-        raise RuntimeError(f"Unexpected error listing issues in {repo_owner}/{repo}: {e}")
+        raise RuntimeError(f"Unexpected error listing issues: {e}")
+    
 
 # --------------------------------------------------------------------------- #
 # 5. POST /repos/{owner}/{repo}/issues                                        #
@@ -307,6 +358,6 @@ def create_repo(
 
 
 
-tools = [list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo]
+tools = [list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo,close_issue]
 
 
