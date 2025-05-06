@@ -5,11 +5,11 @@ from psycopg2.extras import execute_batch
 
 # --- 1. Configuration: update with your connection info ---
 DB_CONFIG = {
-    "host":     "localhost",
+    "host":     "ep-steep-mouse-a4vsg15p-pooler.us-east-1.aws.neon.tech",
     "port":     5432,
-    "dbname":   "genai-eval",
-    "user":     "postgres",
-    "password": "root"
+    "dbname":   "neondb",
+    "user":     "neondb_owner",
+    "password": "npg_Ae1yDC8FohSX"
 }
 CSV_PATH = "github_agent_convergence_results.csv"
 

@@ -12,7 +12,7 @@ from github_tools import init_github
 
 # ─── GitHub helper functions (11 endpoints) ──────────────────────────────────
 from github_tools import (
-    list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo,close_issue
+    list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo,close_issue,list_repo_files
 )
 
 
@@ -25,9 +25,11 @@ if not OPENROUTER_API_KEY:
     raise EnvironmentError("OPENROUTER_API_KEY not found in environment")
 
 
-github_token = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
+github_token = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN_NEW")
 if not github_token:
     raise EnvironmentError("GITHUB_PERSONAL_ACCESS_TOKEN not found in environment")
+
+
 init_github(token=github_token)  # set up GitHub client with your token
 
 llm = OpenRouter(
@@ -101,6 +103,11 @@ tools: List[FunctionTool] = [
         fn=create_repo,
         name="create_repository",
         description="Create a new GitHub repository for the authenticated user",
+    ),
+    FunctionTool.from_defaults(
+        fn=list_repo_files,
+        name="list_repo_files",
+        description="List files in a GitHub repository",
     ),
   
 ]

@@ -2,18 +2,19 @@ import os
 import asyncio
 from master import agent
 from dotenv import load_dotenv
+load_dotenv()
 
 from llama_index.llms.openrouter import OpenRouter
 from llama_index.core.agent import ReActAgent
 from llama_index.core.tools import FunctionTool
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-from phoenix.otel import register
+# from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+# from phoenix.otel import register
 
 
 
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "http://localhost:6006"
-tracer_provider = register()
-LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
+# os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "http://localhost:6006"
+# tracer_provider = register()
+# LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 
 
 async def interactive_chat():
