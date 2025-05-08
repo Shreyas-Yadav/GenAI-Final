@@ -717,3 +717,50 @@ The following video demonstrates the single agent evaluation framework in action
 The following video demonstrates the multi-agent evaluation framework in action:
 
 <div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/c7c384f65f7547a9abc1bc4304293802?sid=0f2c3d81-8687-4cdc-b68a-109ee1f38b54" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+
+
+
+# Ground Truth Evaluation Example
+
+## Sample User Query
+
+```
+Create a repository under my github account puranjaigarg783 of the same as that of a battlestar galactica character. If a repository of the name of a star trek character already exists, choose a different one, create an issue for adding a README for creating a calculator then commit code and readme for it close the issue after.
+```
+
+## Single Agent Ground Truth
+
+### Expected Sequence
+
+| Step | Thought | Tool Call | Action Input | Evaluation |
+|------|---------|-----------|--------------|------------|
+| 1 | I need to first check what repositories already exist under puranjaigarg783 to see if any Star Trek character repos exist. | `list_my_repos` | `{}` | ✓ |
+| 2 | Now I need to choose a Battlestar Galactica character name for the new repository. I'll check if any of the existing repos are named after Star Trek characters. | `create_repo` | `{"name": "adama", "description": "Repository named after William Adama, a Battlestar Galactica character"}` | ✓ |
+| 3 | Now I need to create an issue about adding a README for a calculator. | `open_issue` | `{"repo": "adama", "title": "Add README for calculator", "body": "We need to add a README file with instructions for the calculator implementation."}` | ✓ |
+| 4 | I need to add a README with calculator information and commit the code for a calculator. | `commit_file` | `{"repo": "adama", "path": "README.md", "message": "Add README for calculator", "content": "# Calculator\n\nA simple calculator implementation..."}` | ✓ |
+| 5 | Now I need to add calculator code to the repository. | `commit_file` | `{"repo": "adama", "path": "calculator.py", "message": "Add calculator implementation", "content": "class Calculator:\n    def add(self, a, b):\n        return a + b..."}` | ✓ |
+| 6 | Now that I've added the README and code for the calculator, I need to close the issue. | `close_issue` | `{"repo": "adama", "issue_number": 1}` | ✓ |
+
+**Sequence Optimality Evaluation**: `optimal` - The sequence represents the most efficient approach possible for this task.
+
+## Multi-Agent Ground Truth
+
+### Expected Sequence
+
+| Step | Agent | Thought | Tool/Agent Call | Action Input | Evaluation |
+|------|-------|---------|-----------------|--------------|------------|
+| 1 | Orchestrator | This task involves checking repositories, creating a new repository, creating an issue, and managing files. I should first check existing repositories. | `list_my_repos` | `{}` | ✓ |
+| 2 | Orchestrator | Now I need to create a new repository with a Battlestar Galactica character name. This is a repository creation task, so I'll delegate to the Repository Agent. | `delegate_to_repo_agent` | `{"task": "Create a new repository named 'adama' (Battlestar Galactica character) for user puranjaigarg783..."}` | ✓ |
+| 3 | Repo Agent | I need to create a repository with the name 'adama'. | `create_repo` | `{"name": "adama", "description": "Repository named after William Adama, a Battlestar Galactica character"}` | ✓ |
+| 4 | Orchestrator | Now I need to create an issue for adding a README for a calculator. This is an issue management task, so I'll delegate to the Issues Agent. | `delegate_to_issues_agent` | `{"task": "Create an issue in the 'adama' repository about adding a README for a calculator."}` | ✓ |
+| 5 | Issues Agent | I'll create the issue in the adama repository for adding a README for a calculator. | `open_issue` | `{"repo": "adama", "title": "Add README for calculator", "body": "We need to add a README file..."}` | ✓ |
+| 6 | Orchestrator | Now I need to commit code and a README for a calculator. This is a content management task, so I'll delegate to the Content Agent. | `delegate_to_content_agent` | `{"task": "Add a README.md and calculator.py implementation to the 'adama' repository."}` | ✓ |
+| 7 | Content Agent | I'll first add the README file for the calculator. | `commit_file` | `{"repo": "adama", "path": "README.md", "message": "Add README for calculator", "content": "# Calculator\n\nA simple calculator..."}` | ✓ |
+| 8 | Content Agent | Now I'll add the calculator implementation. | `commit_file` | `{"repo": "adama", "path": "calculator.py", "message": "Add calculator implementation", "content": "class Calculator:\n    def add(self, a, b)..."}` | ✓ |
+| 9 | Orchestrator | Now that the README and calculator code have been added, I need to close the issue. This is an issue management task, so I'll delegate to the Issues Agent. | `delegate_to_issues_agent` | `{"task": "Close issue #1 in the 'adama' repository."}` | ✓ |
+| 10 | Issues Agent | I'll close issue #1 in the adama repository. | `close_issue` | `{"repo": "adama", "issue_number": 1}` | ✓ |
+
+**Sequence Optimality Evaluation**: `optimal` - The sequence represents the most efficient approach possible for a multi-agent system. The orchestrator agent properly delegates tasks to specialized agents based on their expertise.
+
+*Note: This ground truth serves as a reference for evaluating actual agent performance against an ideal execution path.*
