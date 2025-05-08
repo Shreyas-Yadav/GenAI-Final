@@ -161,50 +161,144 @@ def extract_react_components(content):
 
 The system fetches LLM spans from Phoenix, extracts the ReAct components (thoughts, tool calls, action inputs), and prepares this data for evaluation.
 
-## Evaluation Methodology
+## Evaluation Types
 
-Our framework implements three complementary evaluation dimensions:
+Our framework implements three complementary evaluation dimensions that provide a comprehensive assessment of agent performance. Each evaluation type focuses on a different aspect of agent behavior, allowing for targeted improvements.
 
 ### 1. Thought-to-Tool Evaluation
 
-Assesses whether the agent chose the right GitHub tool based on its stated reasoning.
+#### What It Evaluates
 
-**Key Question**: Does the tool selection match the agent's reasoning about what it needs to do?
+Thought-to-Tool evaluation assesses whether the agent selected the appropriate GitHub tool based on its stated reasoning. This evaluation focuses on the connection between the agent's internal thought process and its action selection.
 
-**Evaluation Template Excerpt**:
+#### Key Questions
+
+- Does the chosen tool match the agent's stated intent?
+- Are the parameters provided to the tool appropriate for the task?
+- Is the tool selection logically consistent with the agent's reasoning?
+
+#### Implementation Details
+
+The evaluation uses GPT-4o to analyze the relationship between an agent's thought and its subsequent tool selection. It receives the original user query, the agent's thought, the tool called, and the action input parameters.
+
+#### Evaluation Query Template
+
 ```
-[BEGIN DATA]
-************
-[Original Question]: {original_question}
-************
-[Agent's Thought]: {thought}
-************
-[Tool Called]: {tool_call}
-************
-[Tool Action Input]: {action_input}
-[END DATA]
+You are an evaluation assistant looking at a conversational GitHub agent that uses tools to complete tasks. You're analyzing whether the agent chose the right GitHub tool based on its stated reasoning.
+
+The agent follows a ReAct format: Thought → Action → Action Input → Observation. The "Thought" section contains the agent's reasoning, "Action" is the tool it chose, and "Action Input" contains the parameters for that tool.
+
+Your job is to determine if the "Action" (tool choice) makes sense given the "Thought" (agent's reasoning).
+
+    [BEGIN DATA]
+    ************
+    [Original Question]: {original_question}
+    ************
+    [Agent's Thought]: {thought}
+    ************
+    [Tool Called]: {tool_call}
+    ************
+    [Tool Action Input]: {action_input}
+    [END DATA]
 
 Your task is to:
 1. Identify what the agent is trying to accomplish in its current thought
 2. Determine if the chosen tool is appropriate for accomplishing that specific goal
 3. Make sure the parameters in the action input match what's needed for that goal
 
-Response: "correct" or "incorrect"
+Your response must be a single word, either "correct" or "incorrect".
+
+"correct" means:
+- The tool choice directly addresses what the agent said it wanted to do in its thought
+- The parameters in the action input are appropriate for that specific task
+
+"incorrect" means:
+- The tool doesn't match what the agent said it wanted to do in its thought
+- The parameters are missing important information or contain incorrect values
+
+[Available GitHub Tools]: {tool_definitions}
+
+Please provide a clear EXPLANATION of your reasoning first, then end with the LABEL. Focus only on whether the tool choice makes sense given the agent's thought.
+
+Example response:
+************
+EXPLANATION: Looking at the agent's thought, it wants to [what the agent is trying to do]. The tool it selected is [tool name], which [analysis of why this tool is right or wrong for this specific purpose]. The parameters it provided [analysis of whether parameters match the intent].
+
+Based on this analysis, the tool call is...
+
+LABEL: "correct" or "incorrect"
+************
+
+EXPLANATION:
 ```
 
-**Example Evaluation**:
-- **Thought**: "I need to check if the repository exists"
-- **Tool**: `list_my_repos`
-- **Evaluation**: ✓ Correct (tool matches intent)
+#### Example Evaluation
+
+**Input**:
+- **User Query**: "Create a new repository with a README file"
+- **Agent Thought**: "I need to create a new repository with a README file. First, I'll create the repo."
+- **Tool Called**: `create_repo`
+- **Action Input**: `{"name": "new-project", "description": "A new project"}`
+
+**Evaluation Output**:
+```
+EXPLANATION: Looking at the agent's thought, it wants to create a new repository, which is the first step toward fulfilling the user's request to create a repository with a README. The tool it selected is create_repo, which is the appropriate tool for creating a new repository. The parameters it provided include a name for the repository ("new-project") and a description ("A new project"), which are the essential parameters needed for repository creation.
+
+Based on this analysis, the tool call is...
+
+LABEL: "correct"
+```
+
+#### Code Implementation
+
+```python
+# Create evaluation template for thought-to-tool
+thought_tool_template = ClassificationTemplate(
+    rails=rails,
+    template=IMPROVED_TOOL_CALLING_TEMPLATE,
+    explanation_template=IMPROVED_TOOL_CALLING_TEMPLATE,
+    scores=[1, 0]
+)
+
+# Run evaluation
+thought_tool_classifications = llm_classify(
+    data=input_data,
+    template=thought_tool_template,
+    model=eval_model,
+    rails=rails,
+    provide_explanation=True,
+)
+
+# Calculate accuracy
+thought_tool_classifications["score"] = thought_tool_classifications.apply(
+    lambda x: 1 if x["label"] == "correct" else 0, axis=1
+)
+tt_accuracy = thought_tool_classifications["score"].mean() * 100
+```
 
 ### 2. Query-to-Thought Evaluation
 
-Evaluates if the agent properly understands and plans to address the user's query.
+#### What It Evaluates
 
-**Key Question**: Does the agent's thinking align with what the user is asking for?
+Query-to-Thought evaluation assesses whether the agent's thinking properly aligns with the user's request. This evaluation focuses on the agent's understanding of user intent and its planning process.
 
-**Evaluation Template Excerpt**:
+#### Key Questions
+
+- Does the agent understand what the user is asking for?
+- Is the agent's current thought relevant to fulfilling the user request?
+- Is the agent taking a logical approach to the task?
+
+#### Implementation Details
+
+The evaluation uses GPT-4o to analyze the relationship between the user's query and the agent's thought. It focuses solely on understanding and planning, not on the tools selected.
+
+#### Evaluation Query Template
+
 ```
+You are an evaluation assistant analyzing a GitHub agent's understanding of user requests.
+
+Your task is to determine if the agent's thought is properly aligned with the user's query.
+
 [BEGIN DATA]
 ************
 [User Query]: {original_question}
@@ -214,27 +308,87 @@ Evaluates if the agent properly understands and plans to address the user's quer
 
 Evaluate whether the agent's current thought reflects an understanding of and proper approach to the user's query.
 
+Your response must be EXACTLY one of these two words: "correct" or "incorrect".
+
 "correct" means the thought:
 - Shows the agent understands the user's request
 - Is working on a relevant part of the overall task
 - Is taking a logical step toward completing the request
 
-Response: "correct" or "incorrect"
+"incorrect" means the thought:
+- Misunderstands what the user wants
+- Is focused on something irrelevant
+- Is proceeding in a way that won't help fulfill the request
+
+First provide your EXPLANATION analyzing how well the thought aligns with the query, then provide your LABEL, following this format exactly:
+
+EXPLANATION: [Your analysis here...]
+
+LABEL: [MUST BE EXACTLY "correct" OR "incorrect"]
 ```
 
-**Example Evaluation**:
-- **Query**: "Create a new repo with a README"
-- **Thought**: "I'll first check existing repos to avoid duplicates"
-- **Evaluation**: ✓ Correct (demonstrates proactive planning)
+#### Example Evaluation
+
+**Input**:
+- **User Query**: "Fix the bug in issue #42 of the project-alpha repo"
+- **Agent Thought**: "I need to first check if issue #42 exists in the project-alpha repository and understand what the bug is."
+
+**Evaluation Output**:
+```
+EXPLANATION: The agent's thought directly addresses the user's request to fix a bug in issue #42 of the project-alpha repository. The agent is taking a logical first step by planning to verify the issue exists and understand the nature of the bug before attempting to fix it. This is a methodical approach that demonstrates the agent properly understands what the user wants and is working on a relevant part of the task.
+
+LABEL: correct
+```
+
+#### Code Implementation
+
+```python
+# Create template for query-to-thought evaluation
+query_thought_template = ClassificationTemplate(
+    rails=rails,
+    template=QUERY_TO_THOUGHT_TEMPLATE,
+    explanation_template=QUERY_TO_THOUGHT_TEMPLATE,
+    scores={"correct": 1, "incorrect": 0}
+)
+
+# Run evaluation
+query_thought_classifications = llm_classify(
+    data=query_thought_data,
+    template=query_thought_template,
+    model=eval_model,
+    rails=rails,
+    provide_explanation=True,
+)
+
+# Calculate accuracy
+query_thought_classifications["score"] = query_thought_classifications.apply(
+    lambda x: 1 if x["label"] == "correct" else 0, axis=1
+)
+qt_accuracy = query_thought_classifications["score"].mean() * 100
+```
 
 ### 3. Sequence Optimality Evaluation
 
-Assesses whether the agent took the most efficient path to accomplish the task.
+#### What It Evaluates
 
-**Key Question**: Did the agent use an efficient sequence of steps without redundancy?
+Sequence Optimality evaluation assesses whether the agent chose an efficient path to accomplish the task. Unlike the other evaluations that look at individual steps, this evaluation considers the entire sequence of actions.
 
-**Evaluation Template Excerpt**:
+#### Key Questions
+
+- Did the agent use the minimum necessary steps to complete the task?
+- Were there any redundant or unnecessary operations?
+- Did the agent follow a logical workflow that aligns with GitHub best practices?
+- Did the agent avoid context switching between unrelated subtasks?
+
+#### Implementation Details
+
+The evaluation groups all interactions for a single query and evaluates the complete sequence of thoughts and tool calls. It considers efficiency, logical flow, and adherence to best practices.
+
+#### Evaluation Query Template
+
 ```
+You are evaluating whether a GitHub agent took the optimal sequence of steps to accomplish a user's task.
+
 [BEGIN DATA]
 ************
 [User Query]: {original_question}
@@ -248,14 +402,102 @@ Assesses whether the agent took the most efficient path to accomplish the task.
 
 Evaluate whether the agent used the most efficient sequence of thoughts and tool calls to accomplish the task.
 
+Your response must be EXACTLY one of these two words: "optimal" or "suboptimal".
+
 "optimal" means the sequence represents the most efficient approach with no unnecessary steps.
 "suboptimal" means a more efficient sequence could have been used.
+
+Please provide a clear EXPLANATION of your reasoning, then end with the LABEL.
+
+EXPLANATION:
+
+LABEL: [MUST BE EXACTLY "optimal" OR "suboptimal"]
 ```
 
-**Example Evaluation**:
-- **Query**: "Create an issue for bug #123"
-- **Sequence**: Checks repos → Checks if issue exists → Creates issue
-- **Evaluation**: ✓ Optimal (necessary verification steps)
+#### Example Evaluation
+
+**Input**:
+- **User Query**: "Create an issue about a login bug in the auth-service repo"
+- **Thought Sequence**:
+  ```
+  Step 1: I need to check if the auth-service repository exists before creating an issue.
+  Step 2: Now that I've confirmed the repository exists, I'll create a new issue about the login bug.
+  ```
+- **Tool Sequence**:
+  ```
+  Step 1: list_my_repos - {}
+  Step 2: open_issue - {"repo": "auth-service", "title": "Login Bug", "body": "There is a bug in the login functionality."}
+  ```
+
+**Evaluation Output**:
+```
+EXPLANATION: The agent took a logical and efficient approach to creating an issue about a login bug. It first verified the existence of the repository before attempting to create an issue, which is a prudent step to avoid errors. After confirming the repository exists, it directly created the issue with appropriate parameters (repo name, title, and description). The sequence contains no unnecessary steps or redundant operations. The agent followed the optimal workflow for this task by first validating the repository exists and then creating the issue with all required information in a single step.
+
+LABEL: optimal
+```
+
+#### Data Preparation
+
+```python
+def prepare_sequence_data(eval_df):
+    # Group by the original query to get all steps for each task
+    grouped = eval_df.groupby('question_text')
+    
+    sequence_data = []
+    
+    for query, group in grouped:
+        # Sort by timestamp if available, otherwise use the dataframe order
+        sorted_group = group.reset_index()
+        
+        # Collect all thoughts and tools in sequence
+        thought_sequence = "\n".join([
+            f"Step {i+1}: {row['thought']}" 
+            for i, (_, row) in enumerate(sorted_group.iterrows())
+        ])
+        
+        tool_sequence = "\n".join([
+            f"Step {i+1}: {row['tool_call']} - {row['action_input'][:50]}..." 
+            for i, (_, row) in enumerate(sorted_group.iterrows())
+        ])
+        
+        sequence_data.append({
+            'original_question': query,
+            'thought_sequence': thought_sequence,
+            'tool_sequence': tool_sequence
+        })
+    
+    return pd.DataFrame(sequence_data)
+```
+
+#### Code Implementation
+
+```python
+# Prepare sequence data
+sequence_data = prepare_sequence_data(eval_df)
+
+# Create evaluation template
+sequence_template = ClassificationTemplate(
+    rails=rails,
+    template=SEQUENCE_OPTIMALITY_TEMPLATE,
+    explanation_template=SEQUENCE_OPTIMALITY_TEMPLATE,
+    scores={"optimal": 1, "suboptimal": 0}
+)
+
+# Run evaluation
+sequence_classifications = llm_classify(
+    data=sequence_data,
+    template=sequence_template,
+    model=eval_model,
+    rails=rails,
+    provide_explanation=True,
+)
+
+# Calculate accuracy
+sequence_classifications["score"] = sequence_classifications.apply(
+    lambda x: 1 if x["label"] == "optimal" else 0, axis=1
+)
+seq_accuracy = sequence_classifications["score"].mean() * 100
+```
 
 ## Technical Implementation
 
