@@ -703,3 +703,17 @@ By evaluating not just outcomes but reasoning quality, the framework enables tar
 3. Arize Phoenix Telemetry Documentation
 4. GPT-4 Technical Report (OpenAI)
 5. Evaluating LLM Reasoning (Zaib, et al.)
+
+
+## Demo Video: Single Agent Evaluation
+
+The following video demonstrates the single agent evaluation framework in action:
+
+<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/441970996acb45779febbee064004068?sid=e6fc1d96-7919-45c6-a352-3d4d5a981ab2" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+
+## Demo Video: Multi-Agent Evaluation
+
+The following video demonstrates the multi-agent evaluation framework in action:
+
+<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/c7c384f65f7547a9abc1bc4304293802?sid=0f2c3d81-8687-4cdc-b68a-109ee1f38b54" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
