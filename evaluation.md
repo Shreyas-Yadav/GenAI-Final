@@ -161,34 +161,78 @@ def extract_react_components(content):
 
 The system fetches LLM spans from Phoenix, extracts the ReAct components (thoughts, tool calls, action inputs), and prepares this data for evaluation.
 
-## Evaluation Types
+## Multi-Agent Evaluation
 
-Our framework implements three complementary evaluation dimensions that provide a comprehensive assessment of agent performance. Each evaluation type focuses on a different aspect of agent behavior, allowing for targeted improvements.
+The framework extends seamlessly to evaluate multi-agent systems, where a primary orchestrator agent delegates tasks to specialized sub-agents. This section explores how our evaluation methodology adapts to this additional layer of abstraction.
 
-### 1. Thought-to-Tool Evaluation
+### Multi-Agent Architecture
 
-#### What It Evaluates
+```mermaid
+flowchart TD
+    User(User) -->|Query| OrchestratorAgent[Orchestrator Agent]
+    
+    OrchestratorAgent -->|"delegate_to_repo_agent"| RepoAgent[Repository Agent]
+    OrchestratorAgent -->|"delegate_to_issues_agent"| IssuesAgent[Issues Agent]
+    OrchestratorAgent -->|"delegate_to_content_agent"| ContentAgent[Content Agent]
+    OrchestratorAgent -->|"delegate_to_search_agent"| SearchAgent[Search Agent]
+    OrchestratorAgent -->|Direct tool call| GitHubAPI[GitHub API]
+    
+    RepoAgent -->|Tool calls| GitHubAPI
+    IssuesAgent -->|Tool calls| GitHubAPI
+    ContentAgent -->|Tool calls| GitHubAPI
+    SearchAgent -->|Tool calls| GitHubAPI
+    
+    subgraph "Specialized Agents"
+        RepoAgent
+        IssuesAgent
+        ContentAgent
+        SearchAgent
+    end
+    
+    class OrchestratorAgent fill:#d9f7be,stroke:#389e0d
+    class RepoAgent,IssuesAgent,ContentAgent,SearchAgent fill:#f9f0ff,stroke:#722ed1
+    class GitHubAPI fill:#e6f7ff,stroke:#096dd9
+```
 
-Thought-to-Tool evaluation assesses whether the agent selected the appropriate GitHub tool based on its stated reasoning. This evaluation focuses on the connection between the agent's internal thought process and its action selection.
+In this architecture, the Orchestrator Agent can either:
+1. Make direct tool calls to the GitHub API
+2. Delegate to specialized agents using `delegate_to_X_agent` calls
 
-#### Key Questions
+### Evaluation Approach for Multi-Agent Systems
 
-- Does the chosen tool match the agent's stated intent?
-- Are the parameters provided to the tool appropriate for the task?
-- Is the tool selection logically consistent with the agent's reasoning?
+Our evaluation framework treats agent delegations as a special type of tool call, allowing us to reuse much of the single-agent evaluation machinery while adding context-specific enhancements.
 
-#### Implementation Details
+#### Key Extensions for Multi-Agent Evaluation
 
-The evaluation uses GPT-4o to analyze the relationship between an agent's thought and its subsequent tool selection. It receives the original user query, the agent's thought, the tool called, and the action input parameters.
+1. **Treating Agent Delegations as Tools**
+   - We consider agent delegations (`delegate_to_repo_agent`, etc.) as first-class actions
+   - While logging, we record whether each call is a direct tool call or an agent delegation
+   - Both types of calls are evaluated with the same core framework
 
-#### Evaluation Query Template
+2. **Enhanced Evaluation Templates**
+   - Templates are updated to consider the appropriateness of agent selection
+   - Prompts include agent-specific evaluation criteria
+
+3. **Separate Performance Metrics**
+   - Accuracy is calculated separately for agent delegations vs. direct tool calls
+   - Combined metrics show overall system performance
+
+4. **Delegation Workflow Analysis**
+   - Special analysis of delegation patterns and sequences
+   - Metrics on multi-delegation workflows and task distribution
+
+### Thought-to-Tool/Agent Evaluation
+
+This evaluation assesses whether the agent chose the right tool OR the right specialized agent based on its reasoning.
+
+#### Multi-Agent Evaluation Template
 
 ```
-You are an evaluation assistant looking at a conversational GitHub agent that uses tools to complete tasks. You're analyzing whether the agent chose the right GitHub tool based on its stated reasoning.
+You are an evaluation assistant looking at a conversational GitHub multi-agent system that uses tools and agent delegations to complete tasks. You're analyzing whether the agent chose the right tool or agent delegation based on its stated reasoning.
 
-The agent follows a ReAct format: Thought → Action → Action Input → Observation. The "Thought" section contains the agent's reasoning, "Action" is the tool it chose, and "Action Input" contains the parameters for that tool.
+The agent follows a ReAct format: Thought → Action → Action Input → Observation. The "Thought" section contains the agent's reasoning, "Action" is the tool or agent delegation it chose, and "Action Input" contains the parameters for that action.
 
-Your job is to determine if the "Action" (tool choice) makes sense given the "Thought" (agent's reasoning).
+Your job is to determine if the "Action" (tool or agent delegation) makes sense given the "Thought" (agent's reasoning).
 
     [BEGIN DATA]
     ************
@@ -196,106 +240,56 @@ Your job is to determine if the "Action" (tool choice) makes sense given the "Th
     ************
     [Agent's Thought]: {thought}
     ************
-    [Tool Called]: {tool_call}
+    [Tool/Agent Called]: {tool_call}
     ************
-    [Tool Action Input]: {action_input}
+    [Action Input]: {action_input}
     [END DATA]
 
 Your task is to:
 1. Identify what the agent is trying to accomplish in its current thought
-2. Determine if the chosen tool is appropriate for accomplishing that specific goal
+2. Determine if the chosen tool or agent delegation is appropriate for accomplishing that specific goal
 3. Make sure the parameters in the action input match what's needed for that goal
 
 Your response must be a single word, either "correct" or "incorrect".
 
 "correct" means:
-- The tool choice directly addresses what the agent said it wanted to do in its thought
+- The tool/agent choice directly addresses what the agent said it wanted to do in its thought
 - The parameters in the action input are appropriate for that specific task
+- If delegating to another agent, the delegation is to the appropriate specialized agent for the task
 
 "incorrect" means:
-- The tool doesn't match what the agent said it wanted to do in its thought
+- The tool/agent choice doesn't match what the agent said it wanted to do in its thought
 - The parameters are missing important information or contain incorrect values
+- If delegating to another agent, a different agent would have been more appropriate
 
-[Available GitHub Tools]: {tool_definitions}
+[Available GitHub Tools and Agent Delegations]: {tool_definitions}
 
-Please provide a clear EXPLANATION of your reasoning first, then end with the LABEL. Focus only on whether the tool choice makes sense given the agent's thought.
-
-Example response:
-************
-EXPLANATION: Looking at the agent's thought, it wants to [what the agent is trying to do]. The tool it selected is [tool name], which [analysis of why this tool is right or wrong for this specific purpose]. The parameters it provided [analysis of whether parameters match the intent].
-
-Based on this analysis, the tool call is...
-
-LABEL: "correct" or "incorrect"
-************
-
-EXPLANATION:
+Please provide a clear EXPLANATION of your reasoning first, then end with the LABEL.
 ```
 
 #### Example Evaluation
 
 **Input**:
-- **User Query**: "Create a new repository with a README file"
-- **Agent Thought**: "I need to create a new repository with a README file. First, I'll create the repo."
-- **Tool Called**: `create_repo`
-- **Action Input**: `{"name": "new-project", "description": "A new project"}`
+- **User Query**: "Create a new repository and add a README file"
+- **Agent Thought**: "This task involves repository creation and file content management. I should delegate to the repository agent for the first part."
+- **Tool/Agent Called**: `delegate_to_repo_agent`
+- **Action Input**: `{"task": "Create a new repository called 'project-x'"}`
 
 **Evaluation Output**:
 ```
-EXPLANATION: Looking at the agent's thought, it wants to create a new repository, which is the first step toward fulfilling the user's request to create a repository with a README. The tool it selected is create_repo, which is the appropriate tool for creating a new repository. The parameters it provided include a name for the repository ("new-project") and a description ("A new project"), which are the essential parameters needed for repository creation.
+EXPLANATION: The agent's thought correctly identifies that this task involves repository creation, which is a specialized function of the repository agent. The agent has chosen to delegate to the repo agent, which is the appropriate specialized agent for creating repositories. The action input contains the necessary information for the repo agent to create the repository with the name "project-x". This delegation makes sense as the first step in the overall process of creating a repository and adding a README file.
 
-Based on this analysis, the tool call is...
-
-LABEL: "correct"
+LABEL: correct
 ```
 
-#### Code Implementation
+### Query-to-Thought Evaluation for Multi-Agent Systems
 
-```python
-# Create evaluation template for thought-to-tool
-thought_tool_template = ClassificationTemplate(
-    rails=rails,
-    template=IMPROVED_TOOL_CALLING_TEMPLATE,
-    explanation_template=IMPROVED_TOOL_CALLING_TEMPLATE,
-    scores=[1, 0]
-)
+This evaluation considers whether the agent's thought reflects an understanding of the user's request, including recognizing when specialized agents should be employed.
 
-# Run evaluation
-thought_tool_classifications = llm_classify(
-    data=input_data,
-    template=thought_tool_template,
-    model=eval_model,
-    rails=rails,
-    provide_explanation=True,
-)
-
-# Calculate accuracy
-thought_tool_classifications["score"] = thought_tool_classifications.apply(
-    lambda x: 1 if x["label"] == "correct" else 0, axis=1
-)
-tt_accuracy = thought_tool_classifications["score"].mean() * 100
-```
-
-### 2. Query-to-Thought Evaluation
-
-#### What It Evaluates
-
-Query-to-Thought evaluation assesses whether the agent's thinking properly aligns with the user's request. This evaluation focuses on the agent's understanding of user intent and its planning process.
-
-#### Key Questions
-
-- Does the agent understand what the user is asking for?
-- Is the agent's current thought relevant to fulfilling the user request?
-- Is the agent taking a logical approach to the task?
-
-#### Implementation Details
-
-The evaluation uses GPT-4o to analyze the relationship between the user's query and the agent's thought. It focuses solely on understanding and planning, not on the tools selected.
-
-#### Evaluation Query Template
+#### Multi-Agent Query-to-Thought Template
 
 ```
-You are an evaluation assistant analyzing a GitHub agent's understanding of user requests.
+You are an evaluation assistant analyzing a GitHub multi-agent system's understanding of user requests.
 
 Your task is to determine if the agent's thought is properly aligned with the user's query.
 
@@ -314,80 +308,23 @@ Your response must be EXACTLY one of these two words: "correct" or "incorrect".
 - Shows the agent understands the user's request
 - Is working on a relevant part of the overall task
 - Is taking a logical step toward completing the request
+- Recognizes when to use specialized agents for specific subtasks
 
 "incorrect" means the thought:
 - Misunderstands what the user wants
 - Is focused on something irrelevant
 - Is proceeding in a way that won't help fulfill the request
-
-First provide your EXPLANATION analyzing how well the thought aligns with the query, then provide your LABEL, following this format exactly:
-
-EXPLANATION: [Your analysis here...]
-
-LABEL: [MUST BE EXACTLY "correct" OR "incorrect"]
+- Fails to recognize when to use specialized agents for specific subtasks
 ```
 
-#### Example Evaluation
+### Sequence Optimality Evaluation for Multi-Agent Systems
 
-**Input**:
-- **User Query**: "Fix the bug in issue #42 of the project-alpha repo"
-- **Agent Thought**: "I need to first check if issue #42 exists in the project-alpha repository and understand what the bug is."
+This evaluation assesses whether the system used an efficient sequence of agent delegations and tool calls to accomplish the user's task.
 
-**Evaluation Output**:
-```
-EXPLANATION: The agent's thought directly addresses the user's request to fix a bug in issue #42 of the project-alpha repository. The agent is taking a logical first step by planning to verify the issue exists and understand the nature of the bug before attempting to fix it. This is a methodical approach that demonstrates the agent properly understands what the user wants and is working on a relevant part of the task.
-
-LABEL: correct
-```
-
-#### Code Implementation
-
-```python
-# Create template for query-to-thought evaluation
-query_thought_template = ClassificationTemplate(
-    rails=rails,
-    template=QUERY_TO_THOUGHT_TEMPLATE,
-    explanation_template=QUERY_TO_THOUGHT_TEMPLATE,
-    scores={"correct": 1, "incorrect": 0}
-)
-
-# Run evaluation
-query_thought_classifications = llm_classify(
-    data=query_thought_data,
-    template=query_thought_template,
-    model=eval_model,
-    rails=rails,
-    provide_explanation=True,
-)
-
-# Calculate accuracy
-query_thought_classifications["score"] = query_thought_classifications.apply(
-    lambda x: 1 if x["label"] == "correct" else 0, axis=1
-)
-qt_accuracy = query_thought_classifications["score"].mean() * 100
-```
-
-### 3. Sequence Optimality Evaluation
-
-#### What It Evaluates
-
-Sequence Optimality evaluation assesses whether the agent chose an efficient path to accomplish the task. Unlike the other evaluations that look at individual steps, this evaluation considers the entire sequence of actions.
-
-#### Key Questions
-
-- Did the agent use the minimum necessary steps to complete the task?
-- Were there any redundant or unnecessary operations?
-- Did the agent follow a logical workflow that aligns with GitHub best practices?
-- Did the agent avoid context switching between unrelated subtasks?
-
-#### Implementation Details
-
-The evaluation groups all interactions for a single query and evaluates the complete sequence of thoughts and tool calls. It considers efficiency, logical flow, and adherence to best practices.
-
-#### Evaluation Query Template
+#### Multi-Agent Sequence Optimality Template
 
 ```
-You are evaluating whether a GitHub agent took the optimal sequence of steps to accomplish a user's task.
+You are evaluating whether a GitHub multi-agent system took the optimal sequence of steps to accomplish a user's task.
 
 [BEGIN DATA]
 ************
@@ -396,108 +333,98 @@ You are evaluating whether a GitHub agent took the optimal sequence of steps to 
 [Complete Thought Sequence]:
 {thought_sequence}
 ************
-[Tool Call Sequence]:
+[Tool and Agent Delegation Sequence]:
 {tool_sequence}
 [END DATA]
 
-Evaluate whether the agent used the most efficient sequence of thoughts and tool calls to accomplish the task.
+Evaluate whether the multi-agent system used the most efficient sequence of thoughts, tool calls, and agent delegations to accomplish the task.
 
 Your response must be EXACTLY one of these two words: "optimal" or "suboptimal".
 
-"optimal" means the sequence represents the most efficient approach with no unnecessary steps.
-"suboptimal" means a more efficient sequence could have been used.
+"optimal" means:
+- The sequence represents the most efficient approach with no unnecessary steps
+- Agent delegations were used appropriately to handle specialized tasks
+- The work was distributed efficiently among specialized agents
+- The order of operations makes logical sense
 
-Please provide a clear EXPLANATION of your reasoning, then end with the LABEL.
-
-EXPLANATION:
-
-LABEL: [MUST BE EXACTLY "optimal" OR "suboptimal"]
+"suboptimal" means:
+- There are unnecessary steps or redundant operations
+- Agent delegations were missing when they would have been useful, or used inappropriately
+- The wrong agents were used for certain tasks
+- The workflow could have been more efficiently organized
 ```
 
-#### Example Evaluation
+### Implementation Details
 
-**Input**:
-- **User Query**: "Create an issue about a login bug in the auth-service repo"
-- **Thought Sequence**:
-  ```
-  Step 1: I need to check if the auth-service repository exists before creating an issue.
-  Step 2: Now that I've confirmed the repository exists, I'll create a new issue about the login bug.
-  ```
-- **Tool Sequence**:
-  ```
-  Step 1: list_my_repos - {}
-  Step 2: open_issue - {"repo": "auth-service", "title": "Login Bug", "body": "There is a bug in the login functionality."}
-  ```
-
-**Evaluation Output**:
-```
-EXPLANATION: The agent took a logical and efficient approach to creating an issue about a login bug. It first verified the existence of the repository before attempting to create an issue, which is a prudent step to avoid errors. After confirming the repository exists, it directly created the issue with appropriate parameters (repo name, title, and description). The sequence contains no unnecessary steps or redundant operations. The agent followed the optimal workflow for this task by first validating the repository exists and then creating the issue with all required information in a single step.
-
-LABEL: optimal
-```
-
-#### Data Preparation
+The code implementation differentiates between direct tool calls and agent delegations while using the same evaluation machinery:
 
 ```python
-def prepare_sequence_data(eval_df):
-    # Group by the original query to get all steps for each task
-    grouped = eval_df.groupby('question_text')
-    
-    sequence_data = []
-    
-    for query, group in grouped:
-        # Sort by timestamp if available, otherwise use the dataframe order
-        sorted_group = group.reset_index()
-        
-        # Collect all thoughts and tools in sequence
-        thought_sequence = "\n".join([
-            f"Step {i+1}: {row['thought']}" 
-            for i, (_, row) in enumerate(sorted_group.iterrows())
-        ])
-        
-        tool_sequence = "\n".join([
-            f"Step {i+1}: {row['tool_call']} - {row['action_input'][:50]}..." 
-            for i, (_, row) in enumerate(sorted_group.iterrows())
-        ])
-        
-        sequence_data.append({
-            'original_question': query,
-            'thought_sequence': thought_sequence,
-            'tool_sequence': tool_sequence
-        })
-    
-    return pd.DataFrame(sequence_data)
+# Add agent delegation as tools
+agent_tools = {
+    "delegate_to_repo_agent": "Delegates a repository-related task to the RepoAgent which specializes in creating and managing repositories.",
+    "delegate_to_issues_agent": "Delegates an issue-related task to the IssuesAgent which specializes in creating, managing, and closing issues.",
+    "delegate_to_content_agent": "Delegates a content-related task to the ContentAgent which specializes in creating, reading, and modifying files and content.",
+    "delegate_to_search_agent": "Delegates a search-related task to the SearchAgent which specializes in searching for repositories, issues, and other GitHub entities.",
+}
+
+# Add agent delegations to the tool definitions
+for agent_name, agent_desc in agent_tools.items():
+    tool_definitions += f"\n{agent_name}: {agent_desc}\n"
+
+# Calculate accuracy for agent delegations vs regular tool calls
+agent_delegation_indices = input_data[input_data['tool_call'].str.startswith('delegate_to_')].index
+tool_call_indices = input_data[~input_data['tool_call'].str.startswith('delegate_to_')].index
+
+if len(agent_delegation_indices) > 0:
+    agent_delegation_accuracy = thought_tool_classifications.loc[agent_delegation_indices, "score"].mean() * 100
+    print(f"Agent Delegation accuracy: {agent_delegation_accuracy:.2f}% ({len(agent_delegation_indices)} examples)")
+
+if len(tool_call_indices) > 0:
+    tool_call_accuracy = thought_tool_classifications.loc[tool_call_indices, "score"].mean() * 100
+    print(f"Tool Call accuracy: {tool_call_accuracy:.2f}% ({len(tool_call_indices)} examples)")
 ```
 
-#### Code Implementation
+### Specialized Multi-Agent Metrics
 
-```python
-# Prepare sequence data
-sequence_data = prepare_sequence_data(eval_df)
+The framework introduces specialized metrics for multi-agent evaluation:
 
-# Create evaluation template
-sequence_template = ClassificationTemplate(
-    rails=rails,
-    template=SEQUENCE_OPTIMALITY_TEMPLATE,
-    explanation_template=SEQUENCE_OPTIMALITY_TEMPLATE,
-    scores={"optimal": 1, "suboptimal": 0}
-)
+1. **Agent Delegation Accuracy**: Percentage of agent delegations that select the appropriate specialized agent
+2. **Tool Call Accuracy**: Percentage of direct tool calls that select the appropriate tool
+3. **Delegation Workflow Analysis**: Metrics on agent delegation sequences and patterns
+4. **Task Distribution Efficiency**: Assessment of how efficiently tasks are distributed among agents
 
-# Run evaluation
-sequence_classifications = llm_classify(
-    data=sequence_data,
-    template=sequence_template,
-    model=eval_model,
-    rails=rails,
-    provide_explanation=True,
-)
+### Example Multi-Agent System Evaluation Output
 
-# Calculate accuracy
-sequence_classifications["score"] = sequence_classifications.apply(
-    lambda x: 1 if x["label"] == "optimal" else 0, axis=1
-)
-seq_accuracy = sequence_classifications["score"].mean() * 100
 ```
+Summary Metrics:
+  Thought-to-Tool/Agent accuracy: 89.45%
+  Query-to-Thought accuracy: 92.33%
+  Sequence Optimality accuracy: 78.12%
+  Combined accuracy: 76.54%
+
+Agent Delegations: 45 (62.50%)
+Tool Calls: 27 (37.50%)
+
+Agent Delegation accuracy: 91.11% (45 examples)
+Tool Call accuracy: 88.89% (27 examples)
+
+Common agent delegation patterns:
+  delegate_to_repo_agent -> delegate_to_content_agent: 12 occurrences
+  delegate_to_issues_agent -> delegate_to_search_agent: 8 occurrences
+  delegate_to_search_agent -> delegate_to_issues_agent: 6 occurrences
+```
+
+### Key Insights from Multi-Agent Evaluation
+
+1. **Abstraction Transparency**: By treating agent delegations as tool calls, we maintain a consistent evaluation framework while acknowledging their distinct role
+
+2. **Specialization Benefits**: The evaluation can quantify the benefit of agent specialization by comparing performance of specialized agents vs. direct tool calls
+
+3. **Workflow Optimization**: Sequence optimality evaluation helps identify efficient patterns of agent collaboration
+
+4. **Appropriate Delegation**: Thought-to-Tool/Agent evaluation assesses whether the orchestrator agent is making appropriate delegation decisions
+
+The multi-agent evaluation extends the single-agent framework while providing deeper insights into the orchestration and collaboration patterns of specialized agents, creating a comprehensive evaluation approach for complex agent systems.
 
 ## Technical Implementation
 
