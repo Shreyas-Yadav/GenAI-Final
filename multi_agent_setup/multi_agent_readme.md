@@ -6,53 +6,9 @@ A sophisticated multi-agent system for GitHub operations that leverages speciali
 
 This project implements a multi-agent system for interacting with GitHub, where each agent specializes in specific GitHub operations. The system uses a controller agent to orchestrate these specialized agents, delegating tasks based on their capabilities.
 
-## GitHub Multi-Agent System Architecture
+## Architecture
 
-```mermaid
-flowchart TB
-    subgraph "User Interface"
-        UI[Interactive Chat] --> |"User Request"| MAIN
-    end
-
-    subgraph "Main System"
-        MAIN[advanced_main.py] --> |"Configs & API Keys"| FACTORY
-        FACTORY[AgentFactory] --> |"Creates"| AGENTS
-    end
-
-    subgraph "Controller Layer"
-        AGENTS --> CONTROLLER["ControllerAgent\n(Orchestrator)"]
-        CPROMPT[controller_prompt.py] --> |"System Prompts"| CONTROLLER
-    end
-
-    subgraph "Specialized Agents"
-        CONTROLLER --> REPO["RepoAgent\n(Repository Operations)"]
-        CONTROLLER --> ISSUES["IssuesAgent\n(Issue & PR Tracking)"]
-        CONTROLLER --> CONTENT["ContentAgent\n(File Operations)"]
-        CONTROLLER --> SEARCH["SearchAgent\n(Search Operations)"]
-        CONTROLLER --> BRANCH["BranchAgent\n(Branch Operations)"]
-    end
-
-    subgraph "LLM Providers"
-        REPO & ISSUES & CONTENT & SEARCH & BRANCH & CONTROLLER --> LLM["LLM Service\n(OpenRouter, OpenAI, etc.)"]
-    end
-
-    subgraph "GitHub API Layer"
-        REPO & ISSUES & CONTENT & SEARCH & BRANCH --> TOOLS["github_tools.py\n(API Operations)"]
-        TOOLS --> GITHUB[GitHub API]
-    end
-
-    %% Styling for both light and dark themes
-    classDef controller fill:#f9d5e5,stroke:#333,stroke-width:2px,color:#000
-    classDef agents fill:#eeeeee,stroke:#333,stroke-width:1px,color:#000
-    classDef tools fill:#d5e8f9,stroke:#333,stroke-width:1px,color:#000
-    classDef main fill:#e3f9d5,stroke:#333,stroke-width:1px,color:#000
-    classDef subgraph fill:#f5f5f5,stroke:#555,color:#000
-
-    class CONTROLLER controller
-    class REPO,ISSUES,CONTENT,SEARCH,BRANCH agents
-    class TOOLS tools
-    class MAIN,FACTORY main
-    class "User Interface","Main System","Controller Layer","Specialized Agents","LLM Providers","GitHub API Layer" subgraph
+![alt text](<Screenshot 2025-05-08 075249.png>)
 
 ### Core Components
 
@@ -122,21 +78,17 @@ Additional dependencies may be required based on the LLM providers you choose to
 
 1. Clone the repository
 2. Install dependencies:
-```
-
-pip install -r requirements.txt
-
-```
+   ```
+   pip install -r requirements.txt
+   ```
 3. Create a `.env` file with the following variables:
-```
-
-OPENROUTER_API_KEY=your_openrouter_api_key
-GITHUB_PERSONAL_ACCESS_TOKEN_NEW=your_github_token
-OPENAI_API_KEY=your_openai_api_key (optional)
-ANTHROPIC_API_KEY=your_anthropic_api_key (optional)
-GITHUB_REPO_OWNER=your_github_username
-
-````
+   ```
+   OPENROUTER_API_KEY=your_openrouter_api_key
+   GITHUB_PERSONAL_ACCESS_TOKEN_NEW=your_github_token
+   OPENAI_API_KEY=your_openai_api_key (optional)
+   ANTHROPIC_API_KEY=your_anthropic_api_key (optional)
+   GITHUB_REPO_OWNER=your_github_username
+   ```
 
 ## Usage
 
@@ -146,7 +98,7 @@ Run the basic version:
 
 ```bash
 python main.py
-````
+```
 
 This starts an interactive chat session where you can input GitHub-related requests.
 
