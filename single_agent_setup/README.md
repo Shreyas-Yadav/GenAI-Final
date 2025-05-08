@@ -6,6 +6,10 @@ A powerful, conversational AI agent for automating GitHub operations through nat
 
 This project implements a GitHub automation agent using LlamaIndex's ReAct framework and OpenRouter's LLM API. The agent can perform a wide range of GitHub operations through simple conversational commands, making repository management more accessible and efficient.
 
+## Architecture
+
+![alt text](<Screenshot 2025-05-08 080529.png>)
+
 ## Features
 
 ### GitHub API Integration
