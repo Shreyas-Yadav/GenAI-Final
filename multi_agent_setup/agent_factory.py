@@ -73,7 +73,7 @@ class AgentFactory:
             },
             "repo": {
                 "provider": "openrouter",
-                "model": "google/gemini-2.0-flash-001", 
+                "model": "google/gemini-2.0-flash-001",
                 "max_tokens": 2000,
                 "temperature": 0.1,  # Very focused for repo operations
                 "max_retries": 3
@@ -97,6 +97,13 @@ class AgentFactory:
                 "model": "google/gemini-2.0-flash-001",
                 "max_tokens": 2000,
                 "temperature": 0.1,
+                "max_retries": 3
+            },
+            "branch": {
+                "provider": "openrouter",
+                "model": "google/gemini-2.0-flash-001",
+                "max_tokens": 2000,
+                "temperature": 0.1,  # Very focused for branch operations
                 "max_retries": 3
             }
         }
@@ -138,9 +145,9 @@ class AgentFactory:
                 provider=provider,
                 model_name=agent_config["model"],
                 api_key=api_key,
-                max_tokens=agent_config.get("max_tokens", 4000),
+                max_tokens=agent_config.get("max_tokens", 100000),
                 temperature=agent_config.get("temperature", 0.2),
-                max_retries=agent_config.get("max_retries", 3)
+                max_retries=agent_config.get("max_retries", 5)
             )
             
             # Create the agent

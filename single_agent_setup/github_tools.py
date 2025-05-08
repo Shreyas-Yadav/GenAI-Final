@@ -374,6 +374,243 @@ def list_repo_files(repo: str, branch: str = "main", owner: Optional[str] = None
 
 
 
+# from typing import Optional, Dict, Any, Union
+# from github import GithubException
+
+def merge_branches(
+    repo: str,
+    head: str,
+    base: str = "main",
+    commit_message: Optional[str] = None,
+    owner: Optional[str] = None,
+    merge_method: str = "merge"
+) -> Dict[str, Any]:
+    """
+    Merge a branch into another branch in a GitHub repository.
+    
+    Args:
+        repo (str): Repository name (e.g. "my-repo").
+        head (str): The name of the branch where changes are implemented (source branch).
+        base (str): The name of the branch you want the changes pulled into (target branch). Defaults to "main".
+        commit_message (Optional[str]): Commit message for the merge commit. If None, GitHub uses a default message.
+        owner (Optional[str]): Repository owner or organization. Defaults to DEFAULT_OWNER from github_tools.
+        merge_method (str): The merge method to use: 'merge', 'squash', or 'rebase'. Defaults to 'merge'.
+                            - 'merge': Creates a merge commit
+                            - 'squash': Squashes all commits into one
+                            - 'rebase': Rebases the head branch onto the base branch
+    
+    Returns:
+        Dict[str, Any]: Information about the merge including SHA of the resulting commit.
+        
+    Raises:
+        RuntimeError: On API errors, merge conflicts, or unexpected failures.
+    """
+    from github_tools import _client, DEFAULT_OWNER
+    
+    repo_owner = owner or DEFAULT_OWNER
+    
+    try:
+        # Get the repository object
+        repository = _client().get_repo(f"{repo_owner}/{repo}")
+        
+        # Perform the merge
+        result = repository.merge(
+            base=base,
+            head=head,
+            commit_message=commit_message or f"Merge branch '{head}' into {base}",
+            merge_method=merge_method
+        )
+        
+        # Return useful information about the merge
+        return {
+            "success": True,
+            "sha": result.sha,
+            "message": f"Successfully merged '{head}' into '{base}' using '{merge_method}' method",
+            "commit_url": result.html_url
+        }
+        
+    except GithubException as e:
+        # Handle specific error cases
+        if e.status == 409:  # Conflict
+            raise RuntimeError(f"Merge conflict between '{head}' and '{base}'. Please resolve conflicts manually.")
+        elif e.status == 404:  # Not Found
+            raise RuntimeError(f"Branch '{head}' or '{base}' not found in repository {repo_owner}/{repo}.")
+        else:
+            message = e.data.get("message") if hasattr(e, "data") else str(e)
+            raise RuntimeError(f"GitHub API error merging branches: {message}")
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error merging branches: {e}")
+
+
+def check_merge_status(
+    repo: str,
+    head: str,
+    base: str = "main",
+    owner: Optional[str] = None
+) -> Dict[str, Union[bool, str]]:
+    """
+    Check if a branch can be merged into another branch without conflicts.
+    
+    Args:
+        repo (str): Repository name (e.g. "my-repo").
+        head (str): The name of the branch where changes are implemented (source branch).
+        base (str): The name of the branch you want the changes pulled into (target branch). Defaults to "main".
+        owner (Optional[str]): Repository owner or organization. Defaults to DEFAULT_OWNER from github_tools.
+    
+    Returns:
+        Dict[str, Union[bool, str]]: A dictionary containing:
+            - mergeable (bool): Whether the branches can be merged automatically
+            - message (str): Description of the merge status
+            
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    """
+    from github_tools import _client, DEFAULT_OWNER
+    
+    repo_owner = owner or DEFAULT_OWNER
+    
+    try:
+        # Get the repository object
+        repository = _client().get_repo(f"{repo_owner}/{repo}")
+        
+        # Get the comparison between branches
+        comparison = repository.compare(base, head)
+        
+        # Check for existing PRs between these branches
+        existing_prs = repository.get_pulls(state='open', head=head, base=base)
+        pr_count = existing_prs.totalCount
+        
+        # Get information about both branches to ensure they exist
+        try:
+            repository.get_branch(head)
+            repository.get_branch(base)
+        except GithubException:
+            return {
+                "mergeable": False,
+                "message": f"One or both branches ('{head}' or '{base}') don't exist."
+            }
+        
+        # Determine if they can be merged automatically
+        if pr_count > 0:
+            # If there's an open PR, we can check its mergeable status
+            pr = existing_prs[0]
+            mergeable = pr.mergeable
+            
+            if mergeable is None:
+                # GitHub is still calculating mergeable status
+                return {
+                    "mergeable": None,
+                    "message": "GitHub is still calculating merge status. Please try again in a few moments."
+                }
+            elif mergeable:
+                return {
+                    "mergeable": True,
+                    "message": f"Branches '{head}' and '{base}' can be merged automatically. "
+                               f"There are {comparison.ahead_by} commits ahead and {comparison.behind_by} commits behind."
+                }
+            else:
+                return {
+                    "mergeable": False,
+                    "message": f"Branches '{head}' and '{base}' have conflicts that must be resolved manually."
+                }
+        else:
+            # If no PR exists, make a best guess based on the comparison
+            if comparison.ahead_by == 0:
+                return {
+                    "mergeable": True,
+                    "message": f"Branch '{head}' has no new commits compared to '{base}'. Nothing to merge."
+                }
+            
+            # We can't be 100% sure without a PR, so return a more cautious message
+            return {
+                "mergeable": None, 
+                "message": f"Branch '{head}' is {comparison.ahead_by} commits ahead and "
+                           f"{comparison.behind_by} commits behind '{base}'. "
+                           f"Create a pull request to check for conflicts."
+            }
+            
+    except GithubException as e:
+        message = e.data.get("message") if hasattr(e, "data") else str(e)
+        raise RuntimeError(f"GitHub API error checking merge status: {message}")
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error checking merge status: {e}")
+
+
+# from typing import Optional
+# from github import GithubException
+
+def create_branch(
+    repo: str,
+    branch_name: str,
+    source_branch: str = "main",
+    owner: Optional[str] = None
+) -> dict:
+    """
+    Create a new branch in a GitHub repository based on an existing branch.
+    
+    Args:
+        repo (str): Repository name (e.g. "my-repo").
+        branch_name (str): Name of the new branch to create.
+        source_branch (str): Name of the branch to base the new branch on. Defaults to "main".
+        owner (Optional[str]): Repository owner or organization. Defaults to DEFAULT_OWNER from github_tools.
+    
+    Returns:
+        dict: Information about the created branch including ref and SHA.
+        
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    """
+    from github_tools import _client, DEFAULT_OWNER
+    
+    repo_owner = owner or DEFAULT_OWNER
+    
+    try:
+        # Get the repository object
+        repository = _client().get_repo(f"{repo_owner}/{repo}")
+        
+        # Get the source branch to find its commit SHA
+        try:
+            source = repository.get_branch(source_branch)
+        except GithubException as e:
+            if e.status == 404:
+                raise RuntimeError(f"Source branch '{source_branch}' not found in repository {repo_owner}/{repo}.")
+            raise
+            
+        # Source branch SHA (commit to base the new branch on)
+        sha = source.commit.sha
+        
+        # Check if branch already exists
+        try:
+            repository.get_branch(branch_name)
+            # If we get here, branch exists
+            return {
+                "success": False,
+                "message": f"Branch '{branch_name}' already exists in repository {repo_owner}/{repo}."
+            }
+        except GithubException as e:
+            # 404 means branch doesn't exist, which is what we want
+            if e.status != 404:
+                raise
+        
+        # Create reference for the new branch
+        # GitHub branches are refs in the form "refs/heads/branch-name"
+        ref = f"refs/heads/{branch_name}"
+        new_ref = repository.create_git_ref(ref=ref, sha=sha)
+        
+        return {
+            "success": True,
+            "ref": new_ref.ref,
+            "sha": new_ref.object.sha,
+            "message": f"Branch '{branch_name}' created successfully from '{source_branch}'.",
+            "url": f"https://github.com/{repo_owner}/{repo}/tree/{branch_name}"
+        }
+        
+    except GithubException as e:
+        message = e.data.get("message") if hasattr(e, "data") else str(e)
+        raise RuntimeError(f"GitHub API error creating branch: {message}")
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error creating branch: {e}")
+
 # --------------------------------------------------------------------------- #
 # End of github_tools.py                                                      #
 # --------------------------------------------------------------------------- #
@@ -392,5 +629,8 @@ tools = [
     create_repo,
     close_issue,
     list_repo_files,
+    merge_branches,
+    check_merge_status,
+    create_branch
 ]
 

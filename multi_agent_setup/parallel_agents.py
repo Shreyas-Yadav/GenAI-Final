@@ -67,12 +67,13 @@ class ParallelControllerAgent:
         if specialized_agents:
             self.agents = specialized_agents
         else:
-            from agents import RepoAgent, IssuesAgent, ContentAgent, SearchAgent
+            from agents import RepoAgent, IssuesAgent, ContentAgent, SearchAgent, BranchAgent
             self.agents = {
                 "repo": RepoAgent(llm, verbose),
                 "issues": IssuesAgent(llm, verbose),
                 "content": ContentAgent(llm, verbose),
-                "search": SearchAgent(llm, verbose)
+                "search": SearchAgent(llm, verbose),
+                "branch": BranchAgent(llm, verbose)
             }
         
         # Memory for the controller

@@ -13,7 +13,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Import agent components
-from agents import RepoAgent, IssuesAgent, ContentAgent, SearchAgent
+from agents import RepoAgent, IssuesAgent, ContentAgent, SearchAgent, BranchAgent
 from parallel_agents import ParallelControllerAgent
 from agent_factory import AgentFactory
 from controller_prompt import add_controller_prompt
@@ -50,6 +50,8 @@ def create_specialized_agent(agent_type: str, llm: Any, verbose: bool = True) ->
         return ContentAgent(llm, verbose)
     elif agent_type == "search":
         return SearchAgent(llm, verbose)
+    elif agent_type == "branch":
+        return BranchAgent(llm, verbose)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
 

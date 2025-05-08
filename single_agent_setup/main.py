@@ -1,6 +1,6 @@
 import os
 import asyncio
-from single_agent_setup.master import agent
+from master import agent
 from dotenv import load_dotenv
 load_dotenv()
 

@@ -12,7 +12,7 @@ from github_tools import init_github
 
 # ─── GitHub helper functions (11 endpoints) ──────────────────────────────────
 from github_tools import (
-    list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo,close_issue,list_repo_files
+    list_my_repos, read_file, commit_file, list_issues, open_issue, list_prs, create_pr, list_commits, search_repos, search_issues, create_repo,close_issue,list_repo_files,merge_branches, check_merge_status,create_branch
 )
 
 
@@ -108,6 +108,21 @@ tools: List[FunctionTool] = [
         fn=list_repo_files,
         name="list_repo_files",
         description="List files in a GitHub repository",
+    ),
+     FunctionTool.from_defaults(
+        fn=create_branch,
+        name="create_branch",
+        description="Create a new branch in a GitHub repository based on an existing branch",
+    ),
+      FunctionTool.from_defaults(
+        fn=check_merge_status,
+        name="check_merge_compatibility",
+        description="Check if one branch can be merged into another branch without conflicts",
+    ),
+    FunctionTool.from_defaults(
+        fn=merge_branches,
+        name="merge_branches",
+        description="Merge changes from one branch into another (head branch into base branch)",
     ),
   
 ]

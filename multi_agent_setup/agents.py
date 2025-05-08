@@ -27,7 +27,8 @@ from github_tools import (
     list_my_repos, read_file, commit_file, list_issues, 
     open_issue, list_prs, create_pr, list_commits, 
     search_repos, search_issues, create_repo, 
-    close_issue, list_repo_files
+    close_issue, list_repo_files, create_branch,
+    check_merge_status, merge_branches
 )
 
 class BaseAgent:
@@ -93,6 +94,37 @@ class RepoAgent(BaseAgent):
             verbose=verbose
         )
 
+
+class BranchAgent(BaseAgent):
+    """Agent specialized in branch operations."""
+    
+    def __init__(self, llm: OpenRouter, verbose: bool = False):
+        # Tools specific to branch operations
+        tools = [
+            FunctionTool.from_defaults(
+                fn=create_branch,
+                name="create_branch",
+                description="Create a new branch in a repository based on an existing branch",
+            ),
+            FunctionTool.from_defaults(
+                fn=check_merge_status,
+                name="check_merge_status",
+                description="Check if a branch can be merged into another branch without conflicts",
+            ),
+            FunctionTool.from_defaults(
+                fn=merge_branches,
+                name="merge_branches",
+                description="Merge a branch into another branch in a repository using a specified merge method",
+            ),
+        ]
+        
+        super().__init__(
+            llm=llm,
+            tools=tools,
+            name="BranchAgent",
+            description="Specialized in branch creation, merge status checking, and branch merging operations",
+            verbose=verbose
+        )
 
 class IssuesAgent(BaseAgent):
     """Agent specialized in issue tracking."""
@@ -212,13 +244,15 @@ class ControllerAgent:
         self.issues_agent = IssuesAgent(llm, verbose)
         self.content_agent = ContentAgent(llm, verbose)
         self.search_agent = SearchAgent(llm, verbose)
+        self.branch_agent = BranchAgent(llm, verbose)
         
         # Create a registry of agents and their capabilities
         self.agents = {
             "repo": self.repo_agent,
             "issues": self.issues_agent,
             "content": self.content_agent,
-            "search": self.search_agent
+            "search": self.search_agent,
+            "branch": self.branch_agent
         }
         
         # Memory for the controller
@@ -286,6 +320,7 @@ class ControllerAgent:
         - IssuesAgent: Issue and PR tracking and management
         - ContentAgent: File content operations and management
         - SearchAgent: Searching GitHub repositories, issues, and PRs
+        - BranchAgent: Branch creation, merge status checking, and branch merging operations
 
         Use the appropriate delegation function for each agent.
         """

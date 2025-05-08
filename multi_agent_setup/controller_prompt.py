@@ -32,6 +32,10 @@ Available specialized agents:
    - Capabilities: Search repositories, search issues
    - When to use: For search operations across GitHub
 
+5. BranchAgent
+   - Capabilities: Create branches, check merge status, merge branches
+   - When to use: For branch creation and management operations
+
 Decision making guidelines:
 - Route requests to the most appropriate specialized agent based on the operation needed
 - For complex requests, break them down and delegate parts to different agents
