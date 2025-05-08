@@ -16,37 +16,37 @@ This presentation introduces a comprehensive evaluation framework for GitHub age
 ```mermaid
 flowchart TD
     %% Main components
-    User(User) -->|"Queries (GitHub tasks)"| Agent
-    Agent[GitHub Agent\n(LlamaIndex/ReAct)] -->|"Execute API calls"| GitHubAPI[GitHub API]
-    GitHubAPI -->|"API responses"| Agent
+    User(User) -->|Queries| Agent
+    Agent[GitHub Agent] -->|API calls| GitHubAPI[GitHub API]
+    GitHubAPI -->|Responses| Agent
     
     %% Telemetry capture
-    Agent -->|"Emit trace data"| PhoenixTracing[Arize Phoenix\nTracing]
-    PhoenixTracing -->|"Store spans"| PhoenixDB[(Phoenix DB)]
+    Agent -->|Trace data| PhoenixTracing[Arize Phoenix]
+    PhoenixTracing -->|Store spans| PhoenixDB[(Phoenix DB)]
     
     %% Evaluation system
-    PhoenixDB -->|"Query spans"| SpanQuery[Span Query DSL]
-    SpanQuery -->|"Raw LLM spans"| ReactExtractor[ReAct Component\nExtractor]
-    ReactExtractor -->|"Thoughts, tools,\naction inputs"| EvalPrep[Evaluation\nData Preparation]
+    PhoenixDB -->|Query spans| SpanQuery[Span Query]
+    SpanQuery -->|Raw spans| ReactExtractor[ReAct Extractor]
+    ReactExtractor -->|Parsed data| EvalPrep[Data Preparation]
     
     %% Three evaluations
-    EvalPrep -->|"Individual steps"| T2TEval[Thought-to-Tool\nEvaluation]
-    EvalPrep -->|"Individual steps"| Q2TEval[Query-to-Thought\nEvaluation]
-    EvalPrep -->|"Grouped sequences"| SeqEval[Sequence Optimality\nEvaluation]
+    EvalPrep -->|Steps| T2TEval[Thought-to-Tool Eval]
+    EvalPrep -->|Steps| Q2TEval[Query-to-Thought Eval]
+    EvalPrep -->|Sequences| SeqEval[Sequence Optimality]
     
     %% GPT-4o evaluator
-    T2TEval -->|"Prompt with data"| GPT4o[GPT-4o\nEvaluator]
-    Q2TEval -->|"Prompt with data"| GPT4o
-    SeqEval -->|"Prompt with data"| GPT4o
+    T2TEval -->|Prompt| GPT4o[GPT-4o Evaluator]
+    Q2TEval -->|Prompt| GPT4o
+    SeqEval -->|Prompt| GPT4o
     
     %% Results processing
-    GPT4o -->|"Evaluation results"| ResultProc[Results Processor]
-    ResultProc -->|"Metrics and explanations"| Results[(Evaluation\nResults)]
+    GPT4o -->|Results| ResultProc[Results Processor]
+    ResultProc -->|Metrics| Results[(Evaluation Results)]
     
     %% Outputs
-    Results -->|"Log evaluations"| PhoenixViz[Phoenix\nVisualization]
-    Results -->|"Detailed data"| CSV[CSV Reports]
-    Results -->|"Summary statistics"| ConsoleOut[Console Output]
+    Results -->|Log| PhoenixViz[Phoenix Visualization]
+    Results -->|Export| CSV[CSV Reports]
+    Results -->|Display| ConsoleOut[Console Output]
     
     %% Component styling
     classDef agent fill:#d9f7be,stroke:#389e0d
@@ -61,6 +61,38 @@ flowchart TD
     class T2TEval,Q2TEval,SeqEval,GPT4o evaluation
     class ResultProc,Results,PhoenixViz,CSV,ConsoleOut results
 ```
+
+Our evaluation framework implements a multi-stage pipeline that captures and analyzes agent interactions:
+
+1. **User & Agent Interaction**: 
+   - User submits GitHub-related tasks to the agent
+   - Agent processes requests using ReAct (Reasoning + Acting) framework
+   - Agent interacts with GitHub API to perform actions
+
+2. **Telemetry & Data Collection**:
+   - Phoenix tracing captures agent's thought process and tool calls
+   - Raw spans are stored in Phoenix database for analysis
+   - Span Query DSL extracts relevant LLM interaction data
+
+3. **Component Extraction**:
+   - ReAct Extractor parses thoughts, tool calls, and inputs from spans
+   - Data Preparation module organizes extracted components for evaluation
+   - Individual steps and sequences are prepared for different evaluations
+
+4. **Three-Dimensional Evaluation**:
+   - **Thought-to-Tool**: Evaluates if tool selection matches reasoning
+   - **Query-to-Thought**: Assesses if agent's thoughts align with user query
+   - **Sequence Optimality**: Analyzes efficiency of overall solution path
+
+5. **LLM-Based Assessment**:
+   - GPT-4o evaluates agent performance across all dimensions
+   - Structured prompts ensure consistent, detailed evaluations
+   - Results include both scores and explanatory feedback
+
+6. **Results Processing & Visualization**:
+   - Results are logged to Phoenix for visualization and tracking
+   - Detailed CSV reports enable in-depth analysis
+   - Console output provides immediate feedback
 
 Our evaluation framework implements a three-stage process:
 
