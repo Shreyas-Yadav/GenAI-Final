@@ -1,0 +1,1053 @@
+original_question,thought,tool_call,action_input,tool_definitions
+"
+        You are a GitHub operations controller. Your job is to:
+        1. Analyze the user's request to understand what they need
+        2. Determine which specialized agent(s) should handle the request
+        3. Delegate the relevant parts of the request to those agents
+        4. Synthesize the results into a coherent response
+
+        Available agents:
+        - RepoAgent: Repository creation and management
+        - IssuesAgent: Issue and PR tracking and management
+        - ContentAgent: File content operations and management
+        - SearchAgent: Searching GitHub repositories, issues, and PRs
+
+        Use the appropriate delegation function for each agent.
+        
+
+User request: 
+You are the Controller Agent for a GitHub operations system that orchestrates multiple specialized agents.
+
+Your responsibilities:
+1. Analyze user requests to determine which specialized agent(s) should handle them
+2. Break down complex requests into sub-tasks for different agents
+3. Coordinate the flow of information between agents
+4. Synthesize responses from multiple agents into coherent answers
+
+Available specialized agents:
+
+1. RepoAgent
+   - Capabilities: List repositories, create repositories, list commits
+   - When to use: For repository management operations
+
+2. IssuesAgent
+   - Capabilities: List issues, create issues, close issues, list PRs, create PRs
+   - When to use: For issue and pull request operations
+
+3. ContentAgent
+   - Capabilities: Read file content, update file content, list repository files
+   - When to use: For operations involving file contents
+
+4. SearchAgent
+   - Capabilities: Search repositories, search issues
+   - When to use: For search operations across GitHub
+
+Decision making guidelines:
+- Route requests to the most appropriate specialized agent based on the operation needed
+- For complex requests, break them down and delegate parts to different agents
+- When multiple agents are needed, coordinate the sequence of operations
+- Provide clear context when delegating to an agent
+
+Always maintain a helpful and informative tone with the user, even when handling errors.
+
+
+User request: Create a repository under my github account puranjaigarg783 of the same as that of a famous scientist. If a repository of the name of a famous scientist already exists, chosse a different one, create an issue for adding a README for creating a calculator then commit code and readme for it close the issue after.","The user is asking to create a repository, create an issue, commit code and readme, and close the issue. This involves multiple agents. I'll need to use the RepoAgent to create the repository, the IssuesAgent to create and close the issue, and the ContentAgent to commit the code and readme. I'll also use the SearchAgent to check if a repository with the name of a famous scientist already exists.",delegate_to_search_agent,"{""query"": ""repositories named after famous scientists under puranjaigarg783""}","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+repositories named after famous scientists under puranjaigarg783,The user is asking me to find repositories named after famous scientists under the username puranjaigarg783. I can use the search_repositories tool to find this information.,search_repositories,"{""query"": ""user:puranjaigarg783 name:scientist"", ""sort"": ""stars"", ""order"": ""desc""} ```","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+repositories named after famous scientists under puranjaigarg783,"The previous attempt resulted in an error. It seems like the query might be too specific and return no results, causing an error when processing the empty list. I will try a broader search to see if there are any repositories under that username and then refine the search if needed.",search_repositories,"{'query': 'user:puranjaigarg783', 'sort': 'stars', 'order': 'desc'}","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+"
+        You are a GitHub operations controller. Your job is to:
+        1. Analyze the user's request to understand what they need
+        2. Determine which specialized agent(s) should handle the request
+        3. Delegate the relevant parts of the request to those agents
+        4. Synthesize the results into a coherent response
+
+        Available agents:
+        - RepoAgent: Repository creation and management
+        - IssuesAgent: Issue and PR tracking and management
+        - ContentAgent: File content operations and management
+        - SearchAgent: Searching GitHub repositories, issues, and PRs
+
+        Use the appropriate delegation function for each agent.
+        
+
+User request: 
+You are the Controller Agent for a GitHub operations system that orchestrates multiple specialized agents.
+
+Your responsibilities:
+1. Analyze user requests to determine which specialized agent(s) should handle them
+2. Break down complex requests into sub-tasks for different agents
+3. Coordinate the flow of information between agents
+4. Synthesize responses from multiple agents into coherent answers
+
+Available specialized agents:
+
+1. RepoAgent
+   - Capabilities: List repositories, create repositories, list commits
+   - When to use: For repository management operations
+
+2. IssuesAgent
+   - Capabilities: List issues, create issues, close issues, list PRs, create PRs
+   - When to use: For issue and pull request operations
+
+3. ContentAgent
+   - Capabilities: Read file content, update file content, list repository files
+   - When to use: For operations involving file contents
+
+4. SearchAgent
+   - Capabilities: Search repositories, search issues
+   - When to use: For search operations across GitHub
+
+Decision making guidelines:
+- Route requests to the most appropriate specialized agent based on the operation needed
+- For complex requests, break them down and delegate parts to different agents
+- When multiple agents are needed, coordinate the sequence of operations
+- Provide clear context when delegating to an agent
+
+Always maintain a helpful and informative tone with the user, even when handling errors.
+
+
+User request: Create a repository under my github account puranjaigarg783 of the same as that of a famous scientist. If a repository of the name of a famous scientist already exists, chosse a different one, create an issue for adding a README for creating a calculator then commit code and readme for it close the issue after.",The search agent found a repository named MarieCurie. I need to choose a different famous scientist. I'll choose IsaacNewton. Now I need to delegate the repository creation to the RepoAgent.,delegate_to_repo_agent,{'query': 'create a repository named IsaacNewton under puranjaigarg783'},"
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+create a repository named IsaacNewton under puranjaigarg783,The current language of the user is: English. I need to use the create_repository tool to create a repository.,create_repository,"{""name"": ""IsaacNewton""} ```","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+"
+        You are a GitHub operations controller. Your job is to:
+        1. Analyze the user's request to understand what they need
+        2. Determine which specialized agent(s) should handle the request
+        3. Delegate the relevant parts of the request to those agents
+        4. Synthesize the results into a coherent response
+
+        Available agents:
+        - RepoAgent: Repository creation and management
+        - IssuesAgent: Issue and PR tracking and management
+        - ContentAgent: File content operations and management
+        - SearchAgent: Searching GitHub repositories, issues, and PRs
+
+        Use the appropriate delegation function for each agent.
+        
+
+User request: 
+You are the Controller Agent for a GitHub operations system that orchestrates multiple specialized agents.
+
+Your responsibilities:
+1. Analyze user requests to determine which specialized agent(s) should handle them
+2. Break down complex requests into sub-tasks for different agents
+3. Coordinate the flow of information between agents
+4. Synthesize responses from multiple agents into coherent answers
+
+Available specialized agents:
+
+1. RepoAgent
+   - Capabilities: List repositories, create repositories, list commits
+   - When to use: For repository management operations
+
+2. IssuesAgent
+   - Capabilities: List issues, create issues, close issues, list PRs, create PRs
+   - When to use: For issue and pull request operations
+
+3. ContentAgent
+   - Capabilities: Read file content, update file content, list repository files
+   - When to use: For operations involving file contents
+
+4. SearchAgent
+   - Capabilities: Search repositories, search issues
+   - When to use: For search operations across GitHub
+
+Decision making guidelines:
+- Route requests to the most appropriate specialized agent based on the operation needed
+- For complex requests, break them down and delegate parts to different agents
+- When multiple agents are needed, coordinate the sequence of operations
+- Provide clear context when delegating to an agent
+
+Always maintain a helpful and informative tone with the user, even when handling errors.
+
+
+User request: Create a repository under my github account puranjaigarg783 of the same as that of a famous scientist. If a repository of the name of a famous scientist already exists, chosse a different one, create an issue for adding a README for creating a calculator then commit code and readme for it close the issue after.",The repository has been created. Now I need to create an issue for adding a README for creating a calculator. I'll delegate this to the IssuesAgent.,delegate_to_issues_agent,{'query': 'create an issue in IsaacNewton repository under puranjaigarg783 to add a README for creating a calculator'},"
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+create an issue in IsaacNewton repository under puranjaigarg783 to add a README for creating a calculator,The user wants me to create an issue in a repository. I can use the create_issue tool for this.,create_issue,"{""repo"": ""IsaacNewton"", ""title"": ""Add README for creating a calculator"", ""owner"": ""puranjaigarg783"", ""body"": ""This issue is to add a README file that explains how to create a calculator project in this repository.""} ```","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+"
+        You are a GitHub operations controller. Your job is to:
+        1. Analyze the user's request to understand what they need
+        2. Determine which specialized agent(s) should handle the request
+        3. Delegate the relevant parts of the request to those agents
+        4. Synthesize the results into a coherent response
+
+        Available agents:
+        - RepoAgent: Repository creation and management
+        - IssuesAgent: Issue and PR tracking and management
+        - ContentAgent: File content operations and management
+        - SearchAgent: Searching GitHub repositories, issues, and PRs
+
+        Use the appropriate delegation function for each agent.
+        
+
+User request: 
+You are the Controller Agent for a GitHub operations system that orchestrates multiple specialized agents.
+
+Your responsibilities:
+1. Analyze user requests to determine which specialized agent(s) should handle them
+2. Break down complex requests into sub-tasks for different agents
+3. Coordinate the flow of information between agents
+4. Synthesize responses from multiple agents into coherent answers
+
+Available specialized agents:
+
+1. RepoAgent
+   - Capabilities: List repositories, create repositories, list commits
+   - When to use: For repository management operations
+
+2. IssuesAgent
+   - Capabilities: List issues, create issues, close issues, list PRs, create PRs
+   - When to use: For issue and pull request operations
+
+3. ContentAgent
+   - Capabilities: Read file content, update file content, list repository files
+   - When to use: For operations involving file contents
+
+4. SearchAgent
+   - Capabilities: Search repositories, search issues
+   - When to use: For search operations across GitHub
+
+Decision making guidelines:
+- Route requests to the most appropriate specialized agent based on the operation needed
+- For complex requests, break them down and delegate parts to different agents
+- When multiple agents are needed, coordinate the sequence of operations
+- Provide clear context when delegating to an agent
+
+Always maintain a helpful and informative tone with the user, even when handling errors.
+
+
+User request: Create a repository under my github account puranjaigarg783 of the same as that of a famous scientist. If a repository of the name of a famous scientist already exists, chosse a different one, create an issue for adding a README for creating a calculator then commit code and readme for it close the issue after.",The issue has been created. Now I need to commit code and a README for the calculator. I'll delegate this to the ContentAgent.,delegate_to_content_agent,{'query': 'commit code and a README for a calculator to the IsaacNewton repository under puranjaigarg783'},"
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+commit code and a README for a calculator to the IsaacNewton repository under puranjaigarg783,"I need to create a calculator program and a README file, then commit them to the specified repository. First, I need to create the content for both files. Since I don't have the ability to write code directly, I'll create placeholder content for the calculator and a basic README. Then, I'll use the `update_file_content` tool twice to commit these files to the repository.",update_file_content,"{""repo"": ""IsaacNewton"", ""path"": ""calculator.py"", ""message"": ""Initial commit of calculator program"", ""content"": ""def add(x, y):\n  return x + y\n\ndef subtract(x, y):\n  return x - y\n\ndef multiply(x, y):\n  return x * y\n\ndef divide(x, y):\n  if y == 0:\n    return \""Cannot divide by zero\""\n  return x / y"", ""owner"": ""puranjaigarg783""} ```","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+commit code and a README for a calculator to the IsaacNewton repository under puranjaigarg783,"Now that I've committed the calculator program, I need to create and commit the README file. I'll use the `update_file_content` tool again for this.",update_file_content,"{'repo': 'IsaacNewton', 'path': 'README.md', 'message': 'Initial commit of README file', 'content': '# Calculator\n\nA simple calculator program.', 'owner': 'puranjaigarg783'}","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+"
+        You are a GitHub operations controller. Your job is to:
+        1. Analyze the user's request to understand what they need
+        2. Determine which specialized agent(s) should handle the request
+        3. Delegate the relevant parts of the request to those agents
+        4. Synthesize the results into a coherent response
+
+        Available agents:
+        - RepoAgent: Repository creation and management
+        - IssuesAgent: Issue and PR tracking and management
+        - ContentAgent: File content operations and management
+        - SearchAgent: Searching GitHub repositories, issues, and PRs
+
+        Use the appropriate delegation function for each agent.
+        
+
+User request: 
+You are the Controller Agent for a GitHub operations system that orchestrates multiple specialized agents.
+
+Your responsibilities:
+1. Analyze user requests to determine which specialized agent(s) should handle them
+2. Break down complex requests into sub-tasks for different agents
+3. Coordinate the flow of information between agents
+4. Synthesize responses from multiple agents into coherent answers
+
+Available specialized agents:
+
+1. RepoAgent
+   - Capabilities: List repositories, create repositories, list commits
+   - When to use: For repository management operations
+
+2. IssuesAgent
+   - Capabilities: List issues, create issues, close issues, list PRs, create PRs
+   - When to use: For issue and pull request operations
+
+3. ContentAgent
+   - Capabilities: Read file content, update file content, list repository files
+   - When to use: For operations involving file contents
+
+4. SearchAgent
+   - Capabilities: Search repositories, search issues
+   - When to use: For search operations across GitHub
+
+Decision making guidelines:
+- Route requests to the most appropriate specialized agent based on the operation needed
+- For complex requests, break them down and delegate parts to different agents
+- When multiple agents are needed, coordinate the sequence of operations
+- Provide clear context when delegating to an agent
+
+Always maintain a helpful and informative tone with the user, even when handling errors.
+
+
+User request: Create a repository under my github account puranjaigarg783 of the same as that of a famous scientist. If a repository of the name of a famous scientist already exists, chosse a different one, create an issue for adding a README for creating a calculator then commit code and readme for it close the issue after.",The code and README have been committed. Now I need to close the issue. I'll delegate this to the IssuesAgent.,delegate_to_issues_agent,{'query': 'close issue number 1 in the IsaacNewton repository under puranjaigarg783'},"
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"
+create an issue in IsaacNewton repository under puranjaigarg783 to add a README for creating a calculator,The current language of the user is: English. I need to use a tool to help me answer the question.,close_issue,"{""repo"": ""IsaacNewton"", ""issue_number"": 1, ""owner"": ""puranjaigarg783""} ```","
+list_my_repos: Return the full names (""owner/repo"") of all repos visible to the user.
+
+read_file: Fetch a text/binary file and return its decoded content as str.
+
+commit_file: Create or update *path* with *content* and return the new blob SHA. This tool is used to commit code or text files to a repository.
+
+list_issues: 
+    Retrieve all issues from a GitHub repository.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        owner (str, optional): Repository owner. Defaults to DEFAULT_OWNER.
+        state (str, optional): Issue state filter: ""open"", ""closed"", or ""all"". Defaults to ""open"".
+
+    Returns:
+        List[Dict[str, Union[int, str]]]: A list of dicts each with:
+            - number (int): Issue number
+            - title (str): Issue title
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+    
+
+open_issue: Create a new issue and return its number. This tool is used to create new issues in a repository.
+
+list_prs: Return pull requests matching *state* (and optional *base*).
+
+create_pr: Create a pull request and return its number.
+
+list_commits: Return commit SHAs for *branch* (limited by *per_page*).
+
+search_repos: Search repositories and return their full names.
+
+search_issues: Search issues/PRs and return their numbers.
+
+create_repo: Create a new repository and return its full name. This tool is used to create a new GitHub repository.
+
+close_issue: 
+    Close an existing GitHub issue.
+
+    Args:
+        repo (str): Repository name (e.g. ""my-repo"").
+        issue_number (int): The number of the issue to close.
+        owner (str, optional): Repository owner or organization. 
+                               Defaults to DEFAULT_OWNER.
+
+    Returns:
+        str: Confirmation message.
+
+    Raises:
+        RuntimeError: On API errors or unexpected failures.
+     This tool is used to close existing issues in a repository.
+
+list_repo_files: 
+    List all file paths in a given GitHub repository.
+
+    :param repo: Repository name (e.g., 'Hello-World')
+    :param branch: Branch name (default: 'main')
+    :param owner: Owner of the repository (default: DEFAULT_OWNER)
+    :param token: GitHub access token (recommended for private or high rate limit usage)
+    :return: List of file paths
+    
+
+update_file_content: Creates or updates a file in a repository with the given content. Used for creating or updating files like README.md. This tool is used to create or update files in a repository, including README files.
+"

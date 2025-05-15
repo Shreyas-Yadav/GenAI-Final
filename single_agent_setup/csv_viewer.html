@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LLM Agent Evaluation CSV Viewer</title>
+  <!-- Tailwind CDN for quick prototyping — fine for demos; compile locally for production -->
+  <script src="https://cdn.tailwindcss.com?plugins=typography" defer></script>
+  <!-- Papa Parse for CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.3/papaparse.min.js" defer></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+  <h1 class="text-2xl font-semibold mb-4">LLM Agent Evaluation CSV Viewer</h1>
+
+  <div class="flex space-x-4 mb-6">
+    <button id="singleBtn" class="px-4 py-2 rounded-lg shadow bg-blue-600 text-white">Single Agent</button>
+    <button id="multiBtn" class="px-4 py-2 rounded-lg shadow bg-gray-300 text-gray-800">Multi Agent</button>
+  </div>
+
+  <!-- Hidden file inputs -->
+  <input type="file" id="csvInputSingle" accept=".csv" class="hidden" />
+  <input type="file" id="csvInputMulti" accept=".csv" class="hidden" />
+
+  <!-- Table container -->
+  <div id="tableWrapper" class="w-full overflow-auto max-w-full border rounded-lg shadow bg-white">
+    <table id="csvTable" class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-100"></thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+
+  <script defer>
+  // Wait until DOM AND external scripts load
+  window.addEventListener('DOMContentLoaded', () => {
+    if (typeof Papa === 'undefined') {
+      alert('📡 PapaParse failed to load. Check your internet connection or CDN access.');
+      return;
+    }
+
+    const singleBtn  = document.getElementById('singleBtn');
+    const multiBtn   = document.getElementById('multiBtn');
+    const singleIn   = document.getElementById('csvInputSingle');
+    const multiIn    = document.getElementById('csvInputMulti');
+    const thead      = document.querySelector('#csvTable thead');
+    const tbody      = document.querySelector('#csvTable tbody');
+
+    const activeC   = ['bg-blue-600','text-white'];
+    const inactiveC = ['bg-gray-300','text-gray-800'];
+
+    function toggle(active, inactive) {
+      activeC.forEach(c => { active.classList.add(c);  inactive.classList.remove(c); });
+      inactiveC.forEach(c => { active.classList.remove(c); inactive.classList.add(c); });
+    }
+
+    function clearTable() {
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+    }
+
+    function renderTable(data) {
+      clearTable();
+      if (!data.length) return;
+
+      // Header
+      const headerRow = document.createElement('tr');
+      data[0].forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.className = 'px-4 py-2 text-left text-xs font-medium text-gray-700';
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+
+      // Rows
+      data.slice(1).forEach(row => {
+        const tr = document.createElement('tr');
+        row.forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          td.className = 'px-4 py-2 whitespace-normal break-words text-sm text-gray-900';
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function handleFile(file) {
+      Papa.parse(file, {
+        skipEmptyLines: true,
+        complete: results => renderTable(results.data)
+      });
+    }
+
+    singleBtn.addEventListener('click', () => { toggle(singleBtn,multiBtn); singleIn.click(); });
+    multiBtn.addEventListener('click',  () => { toggle(multiBtn,singleBtn); multiIn.click();  });
+
+    singleIn.addEventListener('change', e => e.target.files[0] && handleFile(e.target.files[0]));
+    multiIn.addEventListener('change',  e => e.target.files[0] && handleFile(e.target.files[0]));
+  });
+  </script>
+</body>
+</html>

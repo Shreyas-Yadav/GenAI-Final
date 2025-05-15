@@ -15,6 +15,13 @@ from agents import RepoAgent, IssuesAgent, ContentAgent, SearchAgent, BranchAgen
 from agent_factory import AgentFactory
 from controller_prompt import add_controller_prompt
 from github_tools import init_github
+from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+from phoenix.otel import register
+
+
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "http://localhost:6006"
+tracer_provider = register()
+LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 
 # Load environment variables
 load_dotenv()

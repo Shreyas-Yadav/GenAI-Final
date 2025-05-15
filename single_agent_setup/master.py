@@ -25,7 +25,7 @@ if not OPENROUTER_API_KEY:
     raise EnvironmentError("OPENROUTER_API_KEY not found in environment")
 
 
-github_token = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN_NEW")
+github_token = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
 if not github_token:
     raise EnvironmentError("GITHUB_PERSONAL_ACCESS_TOKEN not found in environment")
 
