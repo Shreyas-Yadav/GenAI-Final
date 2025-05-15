@@ -8,8 +8,6 @@ This project implements a robust framework for evaluating GitHub agents, address
 
 ## 🏗️ Architecture
 
-## 🏗️ Architecture
-
 ### Evaluation Framework Architecture
 
 ```mermaid
@@ -89,16 +87,6 @@ flowchart TD
     class RepoAgent,IssuesAgent,ContentAgent,SearchAgent fill:#f9f0ff,stroke:#722ed1
     class GitHubAPI fill:#e6f7ff,stroke:#096dd9
 ```
-
-### GitHub Agent Architecture
-
-![GitHub Agent Architecture](Screenshot%202025-05-08%20080529.png)
-
-### GitHub Multi-Agent System Architecture
-
-![GitHub Multi-Agent System Architecture](Screenshot%202025-05-08%20075249.png)
-
-The framework implements a multi-stage evaluation pipeline:
 
 ## 🧪 Evaluation Methodology
 
