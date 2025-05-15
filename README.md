@@ -92,11 +92,11 @@ flowchart TD
 
 ### GitHub Agent Architecture
 
-![GitHub Agent Architecture](https://raw.githubusercontent.com/username/repository/main/images/GitHub_Agent_Architecture.png)
+![GitHub Agent Architecture](Screenshot%202025-05-08%20080529.png)
 
 ### GitHub Multi-Agent System Architecture
 
-![GitHub Multi-Agent System Architecture](https://raw.githubusercontent.com/username/repository/main/images/GitHub_Multi-Agent_System_Architecture.png)
+![GitHub Multi-Agent System Architecture](Screenshot%202025-05-08%20075249.png)
 
 The framework implements a multi-stage evaluation pipeline:
 
@@ -334,11 +334,11 @@ Potential improvements include:
 
 ### Single Agent Evaluation Demo
 
-[![Single Agent Evaluation Demo](https://cdn.loom.com/sessions/thumbnails/441970996acb45779febbee064004068-with-play.gif)](https://www.loom.com/embed/441970996acb45779febbee064004068?sid=e6fc1d96-7919-45c6-a352-3d4d5a981ab2)
+[Watch the Single Agent Evaluation Demo](https://www.loom.com/embed/441970996acb45779febbee064004068?sid=e6fc1d96-7919-45c6-a352-3d4d5a981ab2)
 
 ### Multi-Agent Evaluation Demo
 
-[![Multi-Agent Evaluation Demo](https://cdn.loom.com/sessions/thumbnails/c7c384f65f7547a9abc1bc4304293802-with-play.gif)](https://www.loom.com/embed/c7c384f65f7547a9abc1bc4304293802?sid=0f2c3d81-8687-4cdc-b68a-109ee1f38b54)
+[Watch the Multi-Agent Evaluation Demo](https://www.loom.com/embed/c7c384f65f7547a9abc1bc4304293802?sid=0f2c3d81-8687-4cdc-b68a-109ee1f38b54)
 
 ## 📚 References
 
