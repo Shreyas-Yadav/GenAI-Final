@@ -1,19 +1,13 @@
-# GitHub Agent Evaluation Framework
+GitHub Agent Evaluation Framework
+A comprehensive evaluation framework for GitHub agents built on LlamaIndex with Arize Phoenix telemetry.
 
-## Introduction
+📋 Overview
+This project implements a robust framework for evaluating GitHub agents, addressing a critical gap in agent system development. It provides automated evaluation of agent reasoning, tool selection, and execution efficiency, supporting both single-agent and multi-agent architectures.
 
-This presentation introduces a comprehensive evaluation framework for GitHub agents built on LlamaIndex with Arize Phoenix telemetry. Our framework addresses a critical gap in agent system development: robust, automated evaluation of agent reasoning, tool selection, and execution efficiency.
-
-### Why Agent Evaluation Matters
-
-- Agents perform complex reasoning and make tool-calling decisions that affect outcomes
-- Traditional metrics (success/failure) don't capture reasoning quality
-- Poor intermediate decisions can lead to brittle agents prone to failure
-- Understanding agent thinking enables targeted improvements
-
-## Architecture Overview
-
-```mermaid
+🏗️ Architecture
+🏗️ Architecture
+Evaluation Framework Architecture
+mermaid
 flowchart TD
     %% Main components
     User(User) -->|Queries| Agent
@@ -60,114 +54,8 @@ flowchart TD
     class SpanQuery,ReactExtractor,EvalPrep extraction
     class T2TEval,Q2TEval,SeqEval,GPT4o evaluation
     class ResultProc,Results,PhoenixViz,CSV,ConsoleOut results
-```
-
-Our evaluation framework implements a multi-stage pipeline that captures and analyzes agent interactions:
-
-1. **User & Agent Interaction**: 
-   - User submits GitHub-related tasks to the agent
-   - Agent processes requests using ReAct (Reasoning + Acting) framework
-   - Agent interacts with GitHub API to perform actions
-
-2. **Telemetry & Data Collection**:
-   - Phoenix tracing captures agent's thought process and tool calls
-   - Raw spans are stored in Phoenix database for analysis
-   - Span Query DSL extracts relevant LLM interaction data
-
-3. **Component Extraction**:
-   - ReAct Extractor parses thoughts, tool calls, and inputs from spans
-   - Data Preparation module organizes extracted components for evaluation
-   - Individual steps and sequences are prepared for different evaluations
-
-4. **Three-Dimensional Evaluation**:
-   - **Thought-to-Tool**: Evaluates if tool selection matches reasoning
-   - **Query-to-Thought**: Assesses if agent's thoughts align with user query
-   - **Sequence Optimality**: Analyzes efficiency of overall solution path
-
-5. **LLM-Based Assessment**:
-   - GPT-4o evaluates agent performance across all dimensions
-   - Structured prompts ensure consistent, detailed evaluations
-   - Results include both scores and explanatory feedback
-
-6. **Results Processing & Visualization**:
-   - Results are logged to Phoenix for visualization and tracking
-   - Detailed CSV reports enable in-depth analysis
-   - Console output provides immediate feedback
-
-Our evaluation framework implements a three-stage process:
-
-1. **Trace Collection**: Capture agent interactions via Phoenix telemetry
-2. **ReAct Extraction**: Parse thought processes and tool calls
-3. **Multi-dimensional Evaluation**: Assess reasoning, tool selection, and execution efficiency
-
-## ReAct Framework & Data Collection
-
-The framework evaluates agents that follow the ReAct (Reasoning + Acting) paradigm:
-
-```
-Thought → Action → Action Input → Observation → Thought → ...
-```
-
-### Example ReAct Flow
-
-```
-Thought: I need to check if the user has any existing repositories first
-Action: list_my_repos
-Action Input: {}
-Observation: [{"name": "project-alpha", "description": "A test project", ...}]
-Thought: Now I'll check for open issues in the project-alpha repository
-Action: list_issues
-Action Input: {"repo": "project-alpha"}
-...
-```
-
-### Data Extraction Process
-
-```python
-def extract_react_components(content):
-    """Parse ReAct format to extract thought, tool call, and action input"""
-    components = {
-        "thought": "",
-        "tool_call": "No tool used", 
-        "action_input": ""
-    }
-    
-    # Parse content line by line to extract components
-    lines = content.split('\n')
-    
-    # Extract thought - capture everything between "Thought:" and "Action:"
-    thought_lines = []
-    recording_thought = False
-    
-    for line in lines:
-        line = line.strip()
-        if line.startswith("Thought:"):
-            recording_thought = True
-            # Get content after "Thought:" on same line
-            rest_of_line = line[len("Thought:"):].strip()
-            if rest_of_line:
-                thought_lines.append(rest_of_line)
-        elif recording_thought and line.startswith("Action:"):
-            recording_thought = False
-        elif recording_thought:
-            thought_lines.append(line)
-    
-    components["thought"] = " ".join(thought_lines).strip()
-    
-    # Extract tool call and action input similarly...
-    
-    return components
-```
-
-The system fetches LLM spans from Phoenix, extracts the ReAct components (thoughts, tool calls, action inputs), and prepares this data for evaluation.
-
-## Multi-Agent Evaluation
-
-The framework extends seamlessly to evaluate multi-agent systems, where a primary orchestrator agent delegates tasks to specialized sub-agents. This section explores how our evaluation methodology adapts to this additional layer of abstraction.
-
-### Multi-Agent Architecture
-
-```mermaid
+Multi-Agent Architecture
+mermaid
 flowchart TD
     User(User) -->|Query| OrchestratorAgent[Orchestrator Agent]
     
@@ -192,575 +80,192 @@ flowchart TD
     class OrchestratorAgent fill:#d9f7be,stroke:#389e0d
     class RepoAgent,IssuesAgent,ContentAgent,SearchAgent fill:#f9f0ff,stroke:#722ed1
     class GitHubAPI fill:#e6f7ff,stroke:#096dd9
-```
+GitHub Agent Architecture
+Show Image
 
-In this architecture, the Orchestrator Agent can either:
-1. Make direct tool calls to the GitHub API
-2. Delegate to specialized agents using `delegate_to_X_agent` calls
+GitHub Multi-Agent System Architecture
+Show Image
 
-### Evaluation Approach for Multi-Agent Systems
+The framework implements a multi-stage evaluation pipeline:
 
-Our evaluation framework treats agent delegations as a special type of tool call, allowing us to reuse much of the single-agent evaluation machinery while adding context-specific enhancements.
-
-#### Key Extensions for Multi-Agent Evaluation
-
-1. **Treating Agent Delegations as Tools**
-   - We consider agent delegations (`delegate_to_repo_agent`, etc.) as first-class actions
-   - While logging, we record whether each call is a direct tool call or an agent delegation
-   - Both types of calls are evaluated with the same core framework
-
-2. **Enhanced Evaluation Templates**
-   - Templates are updated to consider the appropriateness of agent selection
-   - Prompts include agent-specific evaluation criteria
-
-3. **Separate Performance Metrics**
-   - Accuracy is calculated separately for agent delegations vs. direct tool calls
-   - Combined metrics show overall system performance
-
-4. **Delegation Workflow Analysis**
-   - Special analysis of delegation patterns and sequences
-   - Metrics on multi-delegation workflows and task distribution
-
-### Thought-to-Tool/Agent Evaluation
-
-This evaluation assesses whether the agent chose the right tool OR the right specialized agent based on its reasoning.
-
-#### Multi-Agent Evaluation Template
-
-```
-You are an evaluation assistant looking at a conversational GitHub multi-agent system that uses tools and agent delegations to complete tasks. You're analyzing whether the agent chose the right tool or agent delegation based on its stated reasoning.
-
-The agent follows a ReAct format: Thought → Action → Action Input → Observation. The "Thought" section contains the agent's reasoning, "Action" is the tool or agent delegation it chose, and "Action Input" contains the parameters for that action.
-
-Your job is to determine if the "Action" (tool or agent delegation) makes sense given the "Thought" (agent's reasoning).
-
-    [BEGIN DATA]
-    ************
-    [Original Question]: {original_question}
-    ************
-    [Agent's Thought]: {thought}
-    ************
-    [Tool/Agent Called]: {tool_call}
-    ************
-    [Action Input]: {action_input}
-    [END DATA]
-
-Your task is to:
-1. Identify what the agent is trying to accomplish in its current thought
-2. Determine if the chosen tool or agent delegation is appropriate for accomplishing that specific goal
-3. Make sure the parameters in the action input match what's needed for that goal
-
-Your response must be a single word, either "correct" or "incorrect".
-
-"correct" means:
-- The tool/agent choice directly addresses what the agent said it wanted to do in its thought
-- The parameters in the action input are appropriate for that specific task
-- If delegating to another agent, the delegation is to the appropriate specialized agent for the task
-
-"incorrect" means:
-- The tool/agent choice doesn't match what the agent said it wanted to do in its thought
-- The parameters are missing important information or contain incorrect values
-- If delegating to another agent, a different agent would have been more appropriate
-
-[Available GitHub Tools and Agent Delegations]: {tool_definitions}
-
-Please provide a clear EXPLANATION of your reasoning first, then end with the LABEL.
-```
-
-#### Example Evaluation
-
-**Input**:
-- **User Query**: "Create a new repository and add a README file"
-- **Agent Thought**: "This task involves repository creation and file content management. I should delegate to the repository agent for the first part."
-- **Tool/Agent Called**: `delegate_to_repo_agent`
-- **Action Input**: `{"task": "Create a new repository called 'project-x'"}`
-
-**Evaluation Output**:
-```
-EXPLANATION: The agent's thought correctly identifies that this task involves repository creation, which is a specialized function of the repository agent. The agent has chosen to delegate to the repo agent, which is the appropriate specialized agent for creating repositories. The action input contains the necessary information for the repo agent to create the repository with the name "project-x". This delegation makes sense as the first step in the overall process of creating a repository and adding a README file.
-
-LABEL: correct
-```
-
-### Query-to-Thought Evaluation for Multi-Agent Systems
-
-This evaluation considers whether the agent's thought reflects an understanding of the user's request, including recognizing when specialized agents should be employed.
-
-#### Multi-Agent Query-to-Thought Template
-
-```
-You are an evaluation assistant analyzing a GitHub multi-agent system's understanding of user requests.
-
-Your task is to determine if the agent's thought is properly aligned with the user's query.
-
-[BEGIN DATA]
-************
-[User Query]: {original_question}
-************
-[Agent's Current Thought]: {thought}
-[END DATA]
-
-Evaluate whether the agent's current thought reflects an understanding of and proper approach to the user's query.
-
-Your response must be EXACTLY one of these two words: "correct" or "incorrect".
-
-"correct" means the thought:
-- Shows the agent understands the user's request
-- Is working on a relevant part of the overall task
-- Is taking a logical step toward completing the request
-- Recognizes when to use specialized agents for specific subtasks
-
-"incorrect" means the thought:
-- Misunderstands what the user wants
-- Is focused on something irrelevant
-- Is proceeding in a way that won't help fulfill the request
-- Fails to recognize when to use specialized agents for specific subtasks
-```
-
-### Sequence Optimality Evaluation for Multi-Agent Systems
-
-This evaluation assesses whether the system used an efficient sequence of agent delegations and tool calls to accomplish the user's task.
-
-#### Multi-Agent Sequence Optimality Template
-
-```
-You are evaluating whether a GitHub multi-agent system took the optimal sequence of steps to accomplish a user's task.
-
-[BEGIN DATA]
-************
-[User Query]: {original_question}
-************
-[Complete Thought Sequence]:
-{thought_sequence}
-************
-[Tool and Agent Delegation Sequence]:
-{tool_sequence}
-[END DATA]
-
-Evaluate whether the multi-agent system used the most efficient sequence of thoughts, tool calls, and agent delegations to accomplish the task.
-
-Your response must be EXACTLY one of these two words: "optimal" or "suboptimal".
-
-"optimal" means:
-- The sequence represents the most efficient approach with no unnecessary steps
-- Agent delegations were used appropriately to handle specialized tasks
-- The work was distributed efficiently among specialized agents
-- The order of operations makes logical sense
-
-"suboptimal" means:
-- There are unnecessary steps or redundant operations
-- Agent delegations were missing when they would have been useful, or used inappropriately
-- The wrong agents were used for certain tasks
-- The workflow could have been more efficiently organized
-```
-
-### Implementation Details
-
-The code implementation differentiates between direct tool calls and agent delegations while using the same evaluation machinery:
-
-```python
-# Add agent delegation as tools
-agent_tools = {
-    "delegate_to_repo_agent": "Delegates a repository-related task to the RepoAgent which specializes in creating and managing repositories.",
-    "delegate_to_issues_agent": "Delegates an issue-related task to the IssuesAgent which specializes in creating, managing, and closing issues.",
-    "delegate_to_content_agent": "Delegates a content-related task to the ContentAgent which specializes in creating, reading, and modifying files and content.",
-    "delegate_to_search_agent": "Delegates a search-related task to the SearchAgent which specializes in searching for repositories, issues, and other GitHub entities.",
-}
-
-# Add agent delegations to the tool definitions
-for agent_name, agent_desc in agent_tools.items():
-    tool_definitions += f"\n{agent_name}: {agent_desc}\n"
-
-# Calculate accuracy for agent delegations vs regular tool calls
-agent_delegation_indices = input_data[input_data['tool_call'].str.startswith('delegate_to_')].index
-tool_call_indices = input_data[~input_data['tool_call'].str.startswith('delegate_to_')].index
-
-if len(agent_delegation_indices) > 0:
-    agent_delegation_accuracy = thought_tool_classifications.loc[agent_delegation_indices, "score"].mean() * 100
-    print(f"Agent Delegation accuracy: {agent_delegation_accuracy:.2f}% ({len(agent_delegation_indices)} examples)")
-
-if len(tool_call_indices) > 0:
-    tool_call_accuracy = thought_tool_classifications.loc[tool_call_indices, "score"].mean() * 100
-    print(f"Tool Call accuracy: {tool_call_accuracy:.2f}% ({len(tool_call_indices)} examples)")
-```
-
-### Specialized Multi-Agent Metrics
-
-The framework introduces specialized metrics for multi-agent evaluation:
-
-1. **Agent Delegation Accuracy**: Percentage of agent delegations that select the appropriate specialized agent
-2. **Tool Call Accuracy**: Percentage of direct tool calls that select the appropriate tool
-3. **Delegation Workflow Analysis**: Metrics on agent delegation sequences and patterns
-4. **Task Distribution Efficiency**: Assessment of how efficiently tasks are distributed among agents
-
-### Example Multi-Agent System Evaluation Output
-
-```
-Summary Metrics:
-  Thought-to-Tool/Agent accuracy: 89.45%
-  Query-to-Thought accuracy: 92.33%
-  Sequence Optimality accuracy: 78.12%
-  Combined accuracy: 76.54%
-
-Agent Delegations: 45 (62.50%)
-Tool Calls: 27 (37.50%)
-
-Agent Delegation accuracy: 91.11% (45 examples)
-Tool Call accuracy: 88.89% (27 examples)
-
-Common agent delegation patterns:
-  delegate_to_repo_agent -> delegate_to_content_agent: 12 occurrences
-  delegate_to_issues_agent -> delegate_to_search_agent: 8 occurrences
-  delegate_to_search_agent -> delegate_to_issues_agent: 6 occurrences
-```
-
-### Key Insights from Multi-Agent Evaluation
-
-1. **Abstraction Transparency**: By treating agent delegations as tool calls, we maintain a consistent evaluation framework while acknowledging their distinct role
-
-2. **Specialization Benefits**: The evaluation can quantify the benefit of agent specialization by comparing performance of specialized agents vs. direct tool calls
-
-3. **Workflow Optimization**: Sequence optimality evaluation helps identify efficient patterns of agent collaboration
-
-4. **Appropriate Delegation**: Thought-to-Tool/Agent evaluation assesses whether the orchestrator agent is making appropriate delegation decisions
-
-The multi-agent evaluation extends the single-agent framework while providing deeper insights into the orchestration and collaboration patterns of specialized agents, creating a comprehensive evaluation approach for complex agent systems.
-
-## Technical Implementation
-
-### LLM-Based Evaluation
-
-The framework uses LLM-based evaluation (GPT-4o) to assess agent performance:
-
-```python
-# Create evaluation models
-eval_model = OpenAIModel(model="gpt-4o")
-
-# Run THOUGHT-TO-TOOL evaluation
-thought_tool_template = ClassificationTemplate(
-    rails=rails,
-    template=IMPROVED_TOOL_CALLING_TEMPLATE,
-    explanation_template=IMPROVED_TOOL_CALLING_TEMPLATE,
-    scores=[1, 0]
-)
-
-thought_tool_classifications = llm_classify(
-    data=input_data,
-    template=thought_tool_template,
-    model=eval_model,
-    rails=rails,
-    provide_explanation=True,
-)
-```
-
-### Tool Definitions
-
-The system defines GitHub tools with enhanced descriptions:
-
-```python
-# Create enhanced tool definitions with examples
-tool_definitions = ""
-for tool in tools:
-    tool_name = tool.__name__
-    tool_desc = tool.__doc__ or "No description available"
-    
-    # Add enhanced descriptions for common tools
-    if tool_name == "update_file_content":
-        tool_desc += " This tool is used to create or update files in a repository, including README files."
-    elif tool_name == "commit_file":
-        tool_desc += " This tool is used to commit code or text files to a repository."
-    
-    tool_definitions += f"\n{tool_name}: {tool_desc}\n"
-```
-
-### Sequence Data Preparation
-
-For sequence evaluation, the system groups interactions by query:
-
-```python
-def prepare_sequence_data(eval_df):
-    # Group by the original query to get all steps for each task
-    grouped = eval_df.groupby('question_text')
-    
-    sequence_data = []
-    
-    for query, group in grouped:
-        # Sort by timestamp if available, otherwise use the dataframe order
-        sorted_group = group.reset_index()
-        
-        # Collect all thoughts and tools in sequence
-        thought_sequence = "\n".join([
-            f"Step {i+1}: {row['thought']}" 
-            for i, (_, row) in enumerate(sorted_group.iterrows())
-        ])
-        
-        tool_sequence = "\n".join([
-            f"Step {i+1}: {row['tool_call']} - {row['action_input'][:50]}..." 
-            for i, (_, row) in enumerate(sorted_group.iterrows())
-        ])
-        
-        sequence_data.append({
-            'original_question': query,
-            'thought_sequence': thought_sequence,
-            'tool_sequence': tool_sequence
-        })
-    
-    return pd.DataFrame(sequence_data)
-```
-
-## Results & Analysis
-
-### Evaluation Metrics
-
-The framework provides multiple metrics:
-
-1. **Thought-to-Tool Accuracy**: Percentage of tool selections that match agent reasoning
-2. **Query-to-Thought Accuracy**: Percentage of thoughts that properly align with user queries
-3. **Sequence Optimality**: Percentage of interactions that follow efficient paths
-4. **Combined Accuracy**: Percentage of interactions that perform well across all dimensions
-5. **Tool Usage Breakdown**: Frequency of each tool's usage
-
-### Visualization & Integration
-
-Results are:
-1. Saved as CSV files for detailed analysis
-2. Logged to Phoenix for visualization
-3. Displayed in console output for immediate review
-
-```python
-# Log to Phoenix
-px.Client().log_evaluations(
-    SpanEvaluations(eval_name="GitHub Tool Calling Eval (Thought-to-Tool)", 
-                    dataframe=thought_tool_classifications),
-)
-
-px.Client().log_evaluations(
-    SpanEvaluations(eval_name="GitHub Query Interpretation Eval (Query-to-Thought)", 
-                    dataframe=query_thought_classifications),
-)
-
-px.Client().log_evaluations(
-    SpanEvaluations(eval_name="GitHub Sequence Optimality Eval", 
-                    dataframe=sequence_classifications),
-)
-```
-
-### Sample Output Analysis
-
-```
-Query-to-Thought accuracy: 92.35%
-Thought-to-Tool accuracy: 87.56%
-Sequence Optimality accuracy: 78.43%
-Combined accuracy (both correct): 73.42%
-
-Tool Usage Breakdown:
-  list_my_repos: 15 uses
-  read_file: 12 uses
-  commit_file: 8 uses
-  list_issues: 7 uses
-  open_issue: 5 uses
-  ...
-```
-
-## Technical Deep Dive: ReAct Extraction
-
-The extraction of ReAct components is critical to reliable evaluation:
-
-```python
-# Function to safely extract React components from the LLM output messages
-def get_react_components(row):
-    try:
-        outputs = row['outputs']
-        
-        # Handle structure where it's a list of message objects
-        if isinstance(outputs, list) and len(outputs) > 0:
-            message = outputs[0].get('message', {})
-            content = message.get('content', '')
-            return extract_react_components(content)
-            
-        # Handle structure where it's a string that needs parsing
-        elif isinstance(outputs, str):
-            try:
-                parsed_outputs = json.loads(outputs)
-                if isinstance(parsed_outputs, list) and len(parsed_outputs) > 0:
-                    message = parsed_outputs[0].get('message', {})
-                    content = message.get('content', '')
-                    return extract_react_components(content)
-            except:
-                pass
-        
-        # Check the output field if exists
-        if 'output' in row:
-            output = row['output']
-            if isinstance(output, dict) and 'value' in output:
-                content = output.get('value', '')
-                return extract_react_components(content)
-                
-        return {"thought": "", "tool_call": "No tool used", "action_input": ""}
-    except Exception as e:
-        print(f"Error extracting React components: {str(e)}")
-        return {"thought": "", "tool_call": "No tool used", "action_input": ""}
-```
-
-The code handles multiple potential data formats:
-- Structured message objects
-- JSON strings
-- Direct output values
-
-## Technical Deep Dive: Evaluation Templates
-
-The evaluation templates are carefully designed to ensure consistent, high-quality assessments:
-
-```python
-IMPROVED_TOOL_CALLING_TEMPLATE = """
-You are an evaluation assistant looking at a conversational GitHub agent that uses tools to complete tasks. You're analyzing whether the agent chose the right GitHub tool based on its stated reasoning.
-
-The agent follows a ReAct format: Thought → Action → Action Input → Observation. The "Thought" section contains the agent's reasoning, "Action" is the tool it chose, and "Action Input" contains the parameters for that tool.
-
-Your job is to determine if the "Action" (tool choice) makes sense given the "Thought" (agent's reasoning).
-
-    [BEGIN DATA]
-    ************
-    [Original Question]: {original_question}
-    ************
-    [Agent's Thought]: {thought}
-    ************
-    [Tool Called]: {tool_call}
-    ************
-    [Tool Action Input]: {action_input}
-    [END DATA]
-
-Your task is to:
-1. Identify what the agent is trying to accomplish in its current thought
-2. Determine if the chosen tool is appropriate for accomplishing that specific goal
-3. Make sure the parameters in the action input match what's needed for that goal
-
-Your response must be a single word, either "correct" or "incorrect".
-
-[Available GitHub Tools]: {tool_definitions}
-
-Please provide a clear EXPLANATION of your reasoning first, then end with the LABEL.
-"""
-```
-
-This template:
-1. Clearly defines the evaluation task
-2. Provides all necessary context
-3. Structures the response format
-4. Gives access to tool definitions for informed assessment
-
-## Future Directions & Extensions
-
-### Potential Improvements
-
-1. **Fine-grained Tool Parameter Evaluation**:
-   - Evaluate parameter quality and completeness
-   - Detect invalid parameter combinations
-
-2. **Multi-step Planning Evaluation**:
-   - Assess the agent's ability to create and follow plans
-   - Evaluate handling of error conditions and recovery
-
-3. **User Alignment Metrics**:
-   - Measure how well agent actions align with user intent beyond query interpretation
-   - Evaluate personalization to user preferences
-
-4. **Cross-agent Comparative Analysis**:
-   - Benchmark multiple agent implementations against each other
-   - Identify technique and architecture advantages
-
-### Integration Opportunities
-
-1. **Continuous Evaluation Pipeline**:
-   - Automate evaluation in CI/CD pipelines
-   - Track performance across agent versions
-
-2. **Real-time Agent Monitoring**:
-   - Live evaluation of production agent systems
-   - Alert on performance degradation
-
-3. **Training Signal Integration**:
-   - Use evaluation results to generate training data
-   - Close the loop with RLHF or other learning approaches
-
-## Conclusion
-
-This GitHub Agent Evaluation Framework provides:
-
-1. **Multi-dimensional assessment** of agent reasoning, tool selection, and efficiency
-2. **Detailed, explainable metrics** through LLM-based evaluation
-3. **Integration with Phoenix** for comprehensive visualization and analysis
-4. **Extensible architecture** for additional evaluation dimensions
-
-By evaluating not just outcomes but reasoning quality, the framework enables targeted improvements to agent systems and deeper understanding of agent behavior.
-
----
-
-## References
-
-1. ReAct: Synergizing Reasoning and Acting in Language Models (Yao, et al.)
-2. LlamaIndex Agent Framework Documentation
-3. Arize Phoenix Telemetry Documentation
-4. GPT-4 Technical Report (OpenAI)
-5. Evaluating LLM Reasoning (Zaib, et al.)
-
-
-## Demo Video: Single Agent Evaluation
-
-The following video demonstrates the single agent evaluation framework in action:
-
-<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/441970996acb45779febbee064004068?sid=e6fc1d96-7919-45c6-a352-3d4d5a981ab2" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
-
-
-## Demo Video: Multi-Agent Evaluation
-
-The following video demonstrates the multi-agent evaluation framework in action:
-
-<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/c7c384f65f7547a9abc1bc4304293802?sid=0f2c3d81-8687-4cdc-b68a-109ee1f38b54" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
-
-
-
-
-# Ground Truth Evaluation Example
-
-## Sample User Query
-
-```
+🧪 Evaluation Methodology
+Ground Truth Evaluation Example
+Sample User Query
 Create a repository under my github account puranjaigarg783 of the same as that of a battlestar galactica character. If a repository of the name of a star trek character already exists, choose a different one, create an issue for adding a README for creating a calculator then commit code and readme for it close the issue after.
-```
+Single Agent Ground Truth
+Step	Thought	Tool Call	Action Input	Evaluation
+1	I need to first check what repositories already exist under puranjaigarg783 to see if any Star Trek character repos exist.	list_my_repos	{}	✓
+2	Now I need to choose a Battlestar Galactica character name for the new repository. I'll check if any of the existing repos are named after Star Trek characters.	create_repo	{"name": "adama", "description": "Repository named after William Adama, a Battlestar Galactica character"}	✓
+3	Now I need to create an issue about adding a README for a calculator.	open_issue	{"repo": "adama", "title": "Add README for calculator", "body": "We need to add a README file with instructions for the calculator implementation."}	✓
+4	I need to add a README with calculator information and commit the code for a calculator.	commit_file	{"repo": "adama", "path": "README.md", "message": "Add README for calculator", "content": "# Calculator\n\nA simple calculator implementation..."}	✓
+5	Now I need to add calculator code to the repository.	commit_file	{"repo": "adama", "path": "calculator.py", "message": "Add calculator implementation", "content": "class Calculator:\n    def add(self, a, b):\n        return a + b..."}	✓
+6	Now that I've added the README and code for the calculator, I need to close the issue.	close_issue	{"repo": "adama", "issue_number": 1}	✓
+Sequence Optimality Evaluation: optimal - The sequence represents the most efficient approach possible for this task.
 
-## Single Agent Ground Truth
+Multi-Agent Ground Truth
+Step	Agent	Thought	Tool/Agent Call	Action Input	Evaluation
+1	Orchestrator	This task involves checking repositories, creating a new repository, creating an issue, and managing files. I should first check existing repositories.	list_my_repos	{}	✓
+2	Orchestrator	Now I need to create a new repository with a Battlestar Galactica character name. This is a repository creation task, so I'll delegate to the Repository Agent.	delegate_to_repo_agent	{"task": "Create a new repository named 'adama' (Battlestar Galactica character) for user puranjaigarg783..."}	✓
+3	Repo Agent	I need to create a repository with the name 'adama'.	create_repo	{"name": "adama", "description": "Repository named after William Adama, a Battlestar Galactica character"}	✓
+4	Orchestrator	Now I need to create an issue for adding a README for a calculator. This is an issue management task, so I'll delegate to the Issues Agent.	delegate_to_issues_agent	{"task": "Create an issue in the 'adama' repository about adding a README for a calculator."}	✓
+5	Issues Agent	I'll create the issue in the adama repository for adding a README for a calculator.	open_issue	{"repo": "adama", "title": "Add README for calculator", "body": "We need to add a README file..."}	✓
+6	Orchestrator	Now I need to commit code and a README for a calculator. This is a content management task, so I'll delegate to the Content Agent.	delegate_to_content_agent	{"task": "Add a README.md and calculator.py implementation to the 'adama' repository."}	✓
+7	Content Agent	I'll first add the README file for the calculator.	commit_file	{"repo": "adama", "path": "README.md", "message": "Add README for calculator", "content": "# Calculator\n\nA simple calculator..."}	✓
+8	Content Agent	Now I'll add the calculator implementation.	commit_file	{"repo": "adama", "path": "calculator.py", "message": "Add calculator implementation", "content": "class Calculator:\n    def add(self, a, b)..."}	✓
+9	Orchestrator	Now that the README and calculator code have been added, I need to close the issue. This is an issue management task, so I'll delegate to the Issues Agent.	delegate_to_issues_agent	{"task": "Close issue #1 in the 'adama' repository."}	✓
+10	Issues Agent	I'll close issue #1 in the adama repository.	close_issue	{"repo": "adama", "issue_number": 1}	✓
+Sequence Optimality Evaluation: optimal - The sequence represents the most efficient approach possible for a multi-agent system. The orchestrator agent properly delegates tasks to specialized agents based on their expertise.
 
-### Expected Sequence
+User & Agent Interaction: Captures interactions between users and GitHub agents
+Telemetry & Data Collection: Records agent reasoning and tool calls via Phoenix tracing
+Component Extraction: Parses ReAct components (thoughts, tool calls, inputs) from telemetry data
+Multi-dimensional Evaluation: Assesses agent performance across three key dimensions
+LLM-Based Assessment: Uses GPT-4o for consistent evaluations with scoring and feedback
+Results Processing & Visualization: Presents findings through Phoenix visualizations, CSV reports, and console output
+Evaluation Dimensions
+The framework evaluates agents across three complementary dimensions:
 
-| Step | Thought | Tool Call | Action Input | Evaluation |
-|------|---------|-----------|--------------|------------|
-| 1 | I need to first check what repositories already exist under puranjaigarg783 to see if any Star Trek character repos exist. | `list_my_repos` | `{}` | ✓ |
-| 2 | Now I need to choose a Battlestar Galactica character name for the new repository. I'll check if any of the existing repos are named after Star Trek characters. | `create_repo` | `{"name": "adama", "description": "Repository named after William Adama, a Battlestar Galactica character"}` | ✓ |
-| 3 | Now I need to create an issue about adding a README for a calculator. | `open_issue` | `{"repo": "adama", "title": "Add README for calculator", "body": "We need to add a README file with instructions for the calculator implementation."}` | ✓ |
-| 4 | I need to add a README with calculator information and commit the code for a calculator. | `commit_file` | `{"repo": "adama", "path": "README.md", "message": "Add README for calculator", "content": "# Calculator\n\nA simple calculator implementation..."}` | ✓ |
-| 5 | Now I need to add calculator code to the repository. | `commit_file` | `{"repo": "adama", "path": "calculator.py", "message": "Add calculator implementation", "content": "class Calculator:\n    def add(self, a, b):\n        return a + b..."}` | ✓ |
-| 6 | Now that I've added the README and code for the calculator, I need to close the issue. | `close_issue` | `{"repo": "adama", "issue_number": 1}` | ✓ |
+Thought-to-Tool Evaluation: Assesses whether the agent chose the right GitHub tool based on its stated reasoning
+Query-to-Thought Evaluation: Evaluates if the agent properly understands and plans to address user queries
+Sequence Optimality Evaluation: Determines whether the agent took the most efficient path to accomplish the task
+🚀 Features
+ReAct Framework Integration: Evaluates agents following the Reasoning + Acting paradigm
+Multi-dimensional Evaluation: Assesses reasoning, tool selection, and execution efficiency
+LLM-Based Evaluation: Uses GPT-4o to evaluate agent performance
+Phoenix Integration: Visualizes and logs evaluation results
+Multi-agent Support: Evaluates both single agents and multi-agent systems
+📁 Project Structure
+The project is organized into three main directories:
 
-**Sequence Optimality Evaluation**: `optimal` - The sequence represents the most efficient approach possible for this task.
+single_agent_setup/: Implementation and evaluation of a single GitHub agent
+multi_agent_setup/: Implementation and evaluation of a multi-agent system
+communication_agents/: Agent implementations for communication between machines
+🔧 Requirements
+Python 3.8+
+Required packages listed in requirements.txt
+GitHub Personal Access Token
+OpenRouter API Key
+🔌 Installation
+Clone the repository:
+bash
+git clone <repository-url>
+cd GenAI-Final
+Install dependencies:
+bash
+pip install -r requirements.txt
+Create a .env file in the root directory:
+OPENROUTER_API_KEY=your_openrouter_api_key
+GITHUB_PERSONAL_ACCESS_TOKEN=your_github_token
+PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
+💻 Usage
+Running the Single Agent Experiment
+bash
+# Run the experiment with predefined test questions
+cd single_agent_setup
+python experiment.py
 
-## Multi-Agent Ground Truth
+# Evaluate the results
+python eval.py
+Running the Interactive Single Agent
+bash
+cd single_agent_setup
+python main.py
+Running the Multi-Agent Experiment
+bash
+# Run the multi-agent experiment
+cd multi_agent_setup
+python multi_experiment.py
 
-### Expected Sequence
+# Evaluate the results
+python eval.py
+🔬 Technical Implementation
+ReAct Framework & Data Collection
+The framework evaluates agents that follow the ReAct (Reasoning + Acting) paradigm:
 
-| Step | Agent | Thought | Tool/Agent Call | Action Input | Evaluation |
-|------|-------|---------|-----------------|--------------|------------|
-| 1 | Orchestrator | This task involves checking repositories, creating a new repository, creating an issue, and managing files. I should first check existing repositories. | `list_my_repos` | `{}` | ✓ |
-| 2 | Orchestrator | Now I need to create a new repository with a Battlestar Galactica character name. This is a repository creation task, so I'll delegate to the Repository Agent. | `delegate_to_repo_agent` | `{"task": "Create a new repository named 'adama' (Battlestar Galactica character) for user puranjaigarg783..."}` | ✓ |
-| 3 | Repo Agent | I need to create a repository with the name 'adama'. | `create_repo` | `{"name": "adama", "description": "Repository named after William Adama, a Battlestar Galactica character"}` | ✓ |
-| 4 | Orchestrator | Now I need to create an issue for adding a README for a calculator. This is an issue management task, so I'll delegate to the Issues Agent. | `delegate_to_issues_agent` | `{"task": "Create an issue in the 'adama' repository about adding a README for a calculator."}` | ✓ |
-| 5 | Issues Agent | I'll create the issue in the adama repository for adding a README for a calculator. | `open_issue` | `{"repo": "adama", "title": "Add README for calculator", "body": "We need to add a README file..."}` | ✓ |
-| 6 | Orchestrator | Now I need to commit code and a README for a calculator. This is a content management task, so I'll delegate to the Content Agent. | `delegate_to_content_agent` | `{"task": "Add a README.md and calculator.py implementation to the 'adama' repository."}` | ✓ |
-| 7 | Content Agent | I'll first add the README file for the calculator. | `commit_file` | `{"repo": "adama", "path": "README.md", "message": "Add README for calculator", "content": "# Calculator\n\nA simple calculator..."}` | ✓ |
-| 8 | Content Agent | Now I'll add the calculator implementation. | `commit_file` | `{"repo": "adama", "path": "calculator.py", "message": "Add calculator implementation", "content": "class Calculator:\n    def add(self, a, b)..."}` | ✓ |
-| 9 | Orchestrator | Now that the README and calculator code have been added, I need to close the issue. This is an issue management task, so I'll delegate to the Issues Agent. | `delegate_to_issues_agent` | `{"task": "Close issue #1 in the 'adama' repository."}` | ✓ |
-| 10 | Issues Agent | I'll close issue #1 in the adama repository. | `close_issue` | `{"repo": "adama", "issue_number": 1}` | ✓ |
+Thought → Action → Action Input → Observation → Thought → ...
+Agent interactions are captured and parsed to extract:
 
-**Sequence Optimality Evaluation**: `optimal` - The sequence represents the most efficient approach possible for a multi-agent system. The orchestrator agent properly delegates tasks to specialized agents based on their expertise.
+Thoughts: Agent reasoning about the task
+Tool Calls: Selected GitHub API functions
+Action Inputs: Parameters provided to tools
+Observations: Results returned from tool execution
+LLM-Based Evaluation
+The framework uses GPT-4o to assess agent performance through structured prompts that ensure consistent, detailed evaluations for:
 
-*Note: This ground truth serves as a reference for evaluating actual agent performance against an ideal execution path.*
+Appropriateness of tool selection given agent reasoning
+Alignment between user queries and agent thoughts
+Efficiency of the solution path compared to optimal approaches
+Multi-Agent Evaluation Extensions
+For multi-agent systems, the framework includes extensions for:
+
+Treating agent delegations as first-class actions
+Evaluating agent selection appropriateness
+Analyzing delegation workflows and patterns
+Measuring task distribution efficiency
+📊 Results & Analysis
+The framework provides comprehensive metrics:
+
+Thought-to-Tool Accuracy: Percentage of tool selections matching agent reasoning
+Query-to-Thought Accuracy: Percentage of thoughts properly aligned with user queries
+Sequence Optimality: Percentage of interactions following efficient paths
+Combined Accuracy: Percentage of interactions performing well across all dimensions
+Tool Usage Breakdown: Frequency analysis of each tool's usage
+Results are:
+
+Saved as CSV files for detailed analysis
+Logged to Phoenix for visualization
+Displayed in console output for immediate review
+🌐 GitHub Agent Capabilities
+The evaluated GitHub agents offer a wide range of capabilities:
+
+Repository Management
+List repositories
+Create repositories
+List repository files
+File Operations
+Read file content
+Create or update files with commit messages
+Issue Management
+List issues with filtering
+Create and close issues
+Search issues across GitHub
+Pull Request Operations
+List pull requests
+Create pull requests between branches
+Branch Operations
+Create branches
+Check merge compatibility
+Merge branches with different strategies
+Search Capabilities
+Search repositories and issues across GitHub
+🤖 Multi-Agent Architecture
+The multi-agent system consists of:
+
+Controller Agent: Orchestrates specialized agents
+Specialized Agents:
+RepoAgent: Repository creation and management
+IssuesAgent: Issue and PR tracking
+ContentAgent: File content operations
+SearchAgent: Searching GitHub entities
+BranchAgent: Branch operations and merging
+🔮 Future Directions
+Potential improvements include:
+
+Fine-grained tool parameter evaluation
+Multi-step planning evaluation
+User alignment metrics
+Cross-agent comparative analysis
+Continuous evaluation pipeline integration
+Real-time agent monitoring
+Training signal integration
+🎥 Demo Videos
+Single Agent Evaluation Demo
+<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/441970996acb45779febbee064004068?sid=e6fc1d96-7919-45c6-a352-3d4d5a981ab2" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+Multi-Agent Evaluation Demo
+<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/c7c384f65f7547a9abc1bc4304293802?sid=0f2c3d81-8687-4cdc-b68a-109ee1f38b54" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+📚 References
+ReAct: Synergizing Reasoning and Acting in Language Models (Yao, et al.)
+LlamaIndex Agent Framework Documentation
+Arize Phoenix Telemetry Documentation
+GPT-4 Technical Report (OpenAI)
+Evaluating LLM Reasoning (Zaib, et al.)

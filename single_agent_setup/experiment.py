@@ -42,7 +42,7 @@ async def run_test_questions():
     
     print("All test questions completed!")
     print(f"Spans have been recorded in Phoenix under project: {project_name}")
-    print("Run eval7.py with the same project name to evaluate the spans")
+    print("Run eval.py with the same project name to evaluate the spans")
 
 if __name__ == "__main__":
     asyncio.run(run_test_questions())
